@@ -26,6 +26,9 @@
 > 栈相关的部分各写各的。**同一个项目只装其中一份。**
 >
 > 后续会继续加（`nestjs-conventions` 等），新增技能照「四、改规则 / 加技能」的流程走。
+>
+> 📌 **本文件只做清单。** 每条规则的完整索引在**技能自己**的 `SKILL.md`（快速索引）和
+> `AGENTS.md`（全量合订本）里 —— 那里是唯一真源，这里不复制一遍，免得三处各自漂移。
 
 ## 目录结构
 
@@ -63,188 +66,6 @@
 
 Reference: [依据的官方文档或源码](https://…)
 ```
-
----
-
-## 规则总索引
-
-规则按**分节 + 影响等级**组织（CRITICAL / HIGH / MEDIUM），**顺序即优先级** ——
-AI 拿不准先守哪条时，按编号从小到大走。
-
-### `nextjs-conventions`（52 条 / 14 分节）
-
-**1. 状态语义（CRITICAL，2 条）**
-
-| 规则 | 一句话 |
-|---|---|
-| `state-loading-vs-pending` | 读用 `loading`，动作用 `pending`，永不混用 |
-| `state-rename-at-destructure` | 需要区分时在**解构处**改名，不改源头 |
-
-**2. 异步动作（CRITICAL，3 条）**
-
-| 规则 | 一句话 |
-|---|---|
-| `action-single-wrapper` | 所有写动作走同一个外壳，不在组件里裸写 |
-| `action-return-boolean` | `run()` 返回 `boolean`，由调用方决定后续 |
-| `action-expose-set-error` | `setError` 必须暴露，供不经过 `run()` 的错误写入 |
-
-**3. 错误处理（CRITICAL，5 条）**
-
-| 规则 | 一句话 |
-|---|---|
-| `error-inline-not-boundary` | 表单错误就地显示，不冒到 Error Boundary |
-| `error-api-message-first` | 业务错误展示后端 message，其余用兜底文案 |
-| `error-client-validation-not-authority` | 客户端校验不替代后端 |
-| `error-route-boundary` | 路由级 `error.tsx` 必须 `"use client"`；`catch` 里先 `unstable_rethrow` |
-| `error-server-action-return-not-throw` | Server Action 的业务错误要 `return` 结果对象 —— 抛出的错误在生产环境会被清洗 |
-
-**4. RSC 边界（CRITICAL，6 条）**
-
-| 规则 | 一句话 |
-|---|---|
-| `rsc-default-server` | 默认 Server Component，`"use client"` 只给交互叶子 |
-| `rsc-keep-client-boundary-small` | `"use client"` 向下传染，边界要往下推 |
-| `rsc-client-not-async` | Client Component 不能声明为 `async function` |
-| `rsc-server-action-separate-file` | Server Action 必须单独文件 + `"use server"` |
-| `rsc-mounted-gate` | 浏览器本地状态影响渲染时必须 `mounted` 门控，否则水合不一致 |
-| `rsc-action-vs-route-handler` | 调用方在应用内用 Server Action，在外部（移动端 / webhook）才开 `route.ts` |
-
-**5. 数据读取（CRITICAL，9 条）**
-
-| 规则 | 一句话 |
-|---|---|
-| `data-render-reads-use` | 渲染期异步读取统一 `use()` + Suspense，不用 `useEffect + setState` |
-| `data-request-apis-are-promises` | `params` / `searchParams` / `cookies()` / `headers()` 必须 `await` |
-| `data-parallel-fetch` | 相互独立的取数用 `Promise.all`，避免瀑布 |
-| `data-preload` | 能提前触发的取数先 `preload` |
-| `data-suspense-boundary` | 用 `useSearchParams` / `usePathname` 的 Client 组件必须被 `Suspense` 包裹 |
-| `data-polling-with-swr` | 轮询用 SWR `refreshInterval`，不用 `use()`；不引入 TanStack Query |
-| `data-cache-components` | 先看 `cacheComponents` 开没开；用 `"use cache"` 不用 `unstable_cache` |
-| `data-use-cache-runtime-api` | `use cache` 内不能读 `cookies()` / `headers()` / `searchParams`，提到外层当 props 传 |
-| `data-cache-invalidation` | 写后要立刻看到用 `updateTag`，能接受下次请求生效才用 `revalidateTag` |
-
-**6. 目录与边界（HIGH，4 条）**
-
-| 规则 | 一句话 |
-|---|---|
-| `layout-app-tree` | `src/app` 路由树 + `components/{ui,layout,system}` + `providers` + `types` |
-| `layout-directory-boundaries` | 每个目录的「做」与「不做」 |
-| `layout-alias-sync` | `tsconfig.json` 的 `paths` 与打包器别名必须同步 |
-| `layout-module-direction` | 层间依赖单向，禁止循环依赖 |
-
-**7. 组件（HIGH，6 条）**
-
-| 规则 | 一句话 |
-|---|---|
-| `component-props-interface` | 所有返回 JSX 的组件必须声明 `interface <ComponentName>Props`（空 props 也要） |
-| `component-file-order` | 组件文件固定顺序：client 指令 → 外部依赖 → 内部模块 → Props → 常量 → 实现 |
-| `component-semantic-classname` | 根 DOM 必须有语义化 kebab-case className，禁用 `wrapper` / `container` |
-| `component-accessible-controls` | 图标控件给 `aria-label`，`button` 显式 `type`，用语义标签 |
-| `component-no-nested-interactive` | 禁止 `<a><button/></a>`，用 `asChild` |
-| `component-async-confirm-dialog` | 异步确认必须 `preventDefault` + pending 禁用 + 失败保留弹框 |
-
-**8. 类型与校验（HIGH，3 条）**
-
-| 规则 | 一句话 |
-|---|---|
-| `type-external-input-zod` | 外部输入一律 Zod 校验，禁止裸 `as` |
-| `type-schema-is-source-of-truth` | 有 schema 就禁止手写 interface，用 `z.infer` |
-| `type-no-escape-hatches` | 禁止 `any` / `!` / `@ts-ignore` |
-
-**9. 命名（HIGH，4 条）**
-
-| 规则 | 一句话 |
-|---|---|
-| `naming-file-case` | 组件文件 PascalCase，其他文件一律 kebab-case（含 hook 的 `use-books.ts`） |
-| `naming-language` | 标识符用英文，注释与文档用中文 |
-| `naming-identifier-conventions` | 布尔 `is/has/should/can` 前缀，常量 SCREAMING_SNAKE，hook 以 `use` 开头且体现领域 |
-| `naming-brevity` | 条件允许时用通行缩写（`pwd`、`minW`），不自造缩写；**导出的名字不缩写** |
-
-**10. 逻辑抽离（MEDIUM，3 条）**
-
-| 规则 | 一句话 |
-|---|---|
-| `extract-page-hook` | 页面级编排 hook 不受「两处复用」约束 |
-| `extract-shared-hook-threshold` | 通用共享 hook 必须至少被两处复用 |
-| `extract-dont-over-split` | 简单组件不要为了整齐硬抽 hook |
-
-**11. 样式与布局（MEDIUM，2 条）**
-
-| 规则 | 一句话 |
-|---|---|
-| `style-layout-escape-hatch` | 父级 `max-width` 无法被子级 `w-full` 突破 |
-| `style-stacking-context` | 全局 `fixed` 背景层需要壳层显式建立 stacking context |
-
-**12. 重渲染（MEDIUM，2 条）**
-
-| 规则 | 一句话 |
-|---|---|
-| `render-stable-dependencies` | 依赖数组长度与顺序必须恒定；派生集合用 `useMemo` 稳定引用 |
-| `render-avoid-noop-state-write` | 高频交互里语义未变化时返回 `prev`，不造新引用 |
-
-**13. 代码格式（MEDIUM，2 条）**
-
-| 规则 | 一句话 |
-|---|---|
-| `format-defer-to-tooling` | 引号 / 分号 / 尾逗号交给 ESLint，别手写；**示例的标点不要照抄** |
-| `format-import-order` | 导入分四组（Node → 外部 → `@/` → 相对），组间空行；类型导入标 `type` |
-
-**14. 注释（MEDIUM，1 条）**
-
-| 规则 | 一句话 |
-|---|---|
-| `comment-public-api` | 只有**导出的**符号必须有注释，且写约束不写复读；内部实现不强制 |
-
----
-
-### `vite-react-conventions`（25 条 / 9 分节）
-
-**1. 状态语义（CRITICAL，2 条）** — `state-loading-vs-pending`、`state-rename-at-destructure`
-**2. 异步动作（CRITICAL，3 条）** — `action-single-wrapper`、`action-return-boolean`、`action-expose-set-error`
-**3. 错误处理（CRITICAL，3 条）** — `error-inline-not-boundary`、`error-api-message-first`、`error-client-validation-not-authority`
-
-**4. 目录与边界（HIGH，6 条）**
-
-| 规则 | 一句话 |
-|---|---|
-| `layout-fixed-src-tree` | 固定的 `src/` 分层，不临时加目录 |
-| `layout-directory-boundaries` | 每个目录的「做」与「不做」 |
-| `layout-no-fetch-in-components` | 禁止在页面 / 组件里直接 `fetch` |
-| `layout-components-by-domain` | 组件按域分子目录，通用组件进 `ui/` |
-| `layout-alias-sync` | `tsconfig.json` 的 `paths` 与 `vite.config.ts` 的 `resolve.alias` 必须同步 |
-| `layout-env-single-source` | 环境变量走单一配置模块，禁止散落 `import.meta.env` |
-
-**5. 命名（HIGH，4 条）**
-
-| 规则 | 一句话 |
-|---|---|
-| `naming-file-case` | 组件文件 PascalCase，其他文件一律 kebab-case |
-| `naming-language` | 标识符用英文，注释与文档用中文 |
-| `naming-interface-vs-type` | 对象形状用 `interface`，联合与工具类型用 `type` |
-| `naming-brevity` | 条件允许时用通行缩写，不自造缩写；导出的名字不缩写 |
-
-**6. 逻辑抽离（MEDIUM，3 条）**
-
-| 规则 | 一句话 |
-|---|---|
-| `extract-triggers` | 四个触发条件：`useState` > 2 / `try-catch` / 异步 `useEffect` / 要复用 |
-| `extract-one-page-one-hook` | 一个页面 = 一个 hook 文件 |
-| `extract-dont-over-split` | 简单组件不要为了整齐硬抽 hook |
-
-**7. React 19 边界（MEDIUM，2 条）**
-
-| 规则 | 一句话 |
-|---|---|
-| `react19-use-not-for-actions` | `use()` 是读取原语，不能替代动作 hook |
-| `react19-use-cached-promise` | `use(promise)` 的 promise 必须在渲染外创建并缓存 |
-
-**8. 代码格式（MEDIUM，1 条）**
-
-| 规则 | 一句话 |
-|---|---|
-| `format-import-order` | 导入分三组（外部 → `@/` → 相对），组内按字母序；类型导入标 `type` |
-
-**9. 注释（MEDIUM，1 条）** — `comment-public-api`
 
 ---
 
@@ -341,7 +162,8 @@ node tools/check-skills.mjs                   # 一致性自检（7 项）
 1. `mkdir -p skills/<新技能名>/rules`，照现有技能拷一份 `_sections.md` / `_template.md` 改
 2. 写 `SKILL.md`（frontmatter 必须有 `name` / `description`）和 `metadata.json`（必须有 `title`）
 3. `rules/` 里每条规则一个文件，**文件名前缀必须是 `_sections.md` 里声明过的分节前缀**
-4. 跑上面那两条命令，再把新技能补进本文件的技能清单和规则总索引
+4. 跑上面那两条命令，再把新技能补进本文件的技能清单（**只补清单** —— 规则索引由
+   `SKILL.md` / `AGENTS.md` 自己承载）
 
 `check-skills.mjs` 查 7 件事：文件前缀有对应分节 / frontmatter 五字段齐全 /
 每条规则都有 Reference 链接 / `SKILL.md` 索引覆盖全部规则（无悬空也无遗漏）/
