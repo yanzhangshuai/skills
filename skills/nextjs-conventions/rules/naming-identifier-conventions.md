@@ -15,6 +15,10 @@ tags: naming, boolean, constant, hook, convention
 | 函数 | 动词开头 | `getBook`、`parseAiOutput`、`toBookView` |
 | Hook | `use` + 领域名 | `useBooks`、`useGraphData` |
 
+> **上表说的全是「标识符」（变量名 / 函数名 / 常量名）。文件名另有规则** ——
+> 组件 PascalCase、其他一律 kebab-case，见 `naming-file-case`。
+> 所以 `hooks/use-books.ts` 里导出的函数叫 `useBooks`，两者形态不同是**故意的**。
+
 **Incorrect（名字看不出类型和用途）：**
 
 ```ts
