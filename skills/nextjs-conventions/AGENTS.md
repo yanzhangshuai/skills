@@ -2083,6 +2083,27 @@ Reference: [TypeScript: unknown vs any](https://www.typescriptlang.org/docs/hand
 > 文件一律 kebab-case，只有**函数名 / 变量名**才用 camelCase。
 > 这条容易反着记，所以单列一行。
 
+### 社区里为什么有两派
+
+**官方没有规定。** Next.js 文档原话：
+> *Next.js is **unopinionated** about how you organize and colocate your project files.*
+
+实际生态分两派，各有道理：
+
+| 派别 | 代表 | 做法 |
+|---|---|---|
+| **kebab-case**（Next.js 生态主流） | shadcn/ui（`use-mobile.ts`、`use-mounted.ts`、`use-copy-to-clipboard.ts`）、Vercel 的 `vercel/ai`（`use-chat.ts`）与 `vercel/commerce`、Next.js 官方示例（`login-form.tsx`） | 文件名是**路径标识**，与导出名解耦；组件文件也一律 kebab-case |
+| **camelCase**（库 / 大型应用的 house style） | TanStack Query（`useQuery.ts`、`useMutation.ts`）、cal.com（`useBookerUrl.ts`） | **文件名 = 导出的函数名**；一个文件一个公开 API 时才自然 |
+
+**本项目跟 kebab-case 一派** —— 目录里同时有组件、hook、工具函数，
+统一成「组件 PascalCase、其他 kebab-case」只需要一条判据；
+跟 camelCase 那派就得先判断「这个文件是不是只导出一个 hook」，
+判据不唯一，最终必然混着写。
+
+> **真正有强制力的是函数名。** `eslint-plugin-react-hooks` 只认「函数名以 `use` 开头」，
+> **文件名写成什么都不影响 lint**。所以这条纯属团队约定 ——
+> **统一比选哪派更重要**，别在一个项目里两种都有。
+
 **Incorrect（同一个目录里三种风格并存）：**
 
 ```
