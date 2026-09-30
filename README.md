@@ -76,17 +76,20 @@ Reference: [依据的官方文档或源码](https://…)
 每个技能都有一份**全部规则的合订本** `AGENTS.md` —— 一个链接就是整个技能：
 
 ```
-读取 https://raw.githubusercontent.com/yanzhangshuai/skill/main/skills/nextjs-conventions/AGENTS.md
+读取 https://raw.githubusercontent.com/yanzhangshuai/skills/main/skills/nextjs-conventions/AGENTS.md
 ，然后严格按它写代码。
 ```
 
 | 技能 | 合订本链接（复制即用） |
 |---|---|
-| `nextjs-conventions` | `https://raw.githubusercontent.com/yanzhangshuai/skill/main/skills/nextjs-conventions/AGENTS.md` |
-| `vite-react-conventions` | `https://raw.githubusercontent.com/yanzhangshuai/skill/main/skills/vite-react-conventions/AGENTS.md` |
+| `nextjs-conventions` | `https://raw.githubusercontent.com/yanzhangshuai/skills/main/skills/nextjs-conventions/AGENTS.md` |
+| `vite-react-conventions` | `https://raw.githubusercontent.com/yanzhangshuai/skills/main/skills/vite-react-conventions/AGENTS.md` |
 
-规律就是 `https://raw.githubusercontent.com/yanzhangshuai/skill/main/skills/<技能名>/AGENTS.md` ——
+规律就是 `https://raw.githubusercontent.com/yanzhangshuai/skills/main/skills/<技能名>/AGENTS.md` ——
 **以后新增技能不用改这段话，把 `<技能名>` 换掉即可。**
+
+> URL 里出现两次 `skills` 不是手滑：**前一个是 GitHub 仓库名，后一个是仓内的容器目录**
+> （社区 CLI 要求的 `skills/<名字>/SKILL.md` 布局）。
 
 想省 token 就给 `SKILL.md`（`.../skills/<技能名>/SKILL.md`）：AI 先读它的索引与工作流，
 需要细节时再按需拉 `rules/*.md`。
@@ -94,13 +97,13 @@ Reference: [依据的官方文档或源码](https://…)
 ## 方式 2 · 社区 skills CLI（支持 75+ agent）
 
 ```bash
-npx skills add yanzhangshuai/skill --list                            # 先看有哪些技能
-npx skills add yanzhangshuai/skill --skill nextjs-conventions -g     # -g = 装到用户目录，跨项目可用
-npx skills add yanzhangshuai/skill --skill vite-react-conventions -g
+npx skills add yanzhangshuai/skills --list                            # 先看有哪些技能
+npx skills add yanzhangshuai/skills --skill nextjs-conventions -g     # -g = 装到用户目录，跨项目可用
+npx skills add yanzhangshuai/skills --skill vite-react-conventions -g
 ```
 
 - 不加 `-g` → 装到当前项目的 `<agent>/skills/`，随项目提交、与团队共享
-- 也支持直接给仓内路径：`npx skills add https://github.com/yanzhangshuai/skill/tree/main/skills/nextjs-conventions`
+- 也支持直接给仓内路径：`npx skills add https://github.com/yanzhangshuai/skills/tree/main/skills/nextjs-conventions`
 - 更新：`npx skills update nextjs-conventions`；卸载：`npx skills rm nextjs-conventions`
 
 ## 方式 3 · WorkBuddy（CLI 不认它的目录，只能自拷）
@@ -109,13 +112,13 @@ WorkBuddy 的技能目录是 `~/.workbuddy-ai/skills/`，而社区 CLI 的目标
 `codebuddy` → `~/.codebuddy/skills/`，**没有 WorkBuddy**：
 
 ```bash
-git clone --depth 1 https://github.com/yanzhangshuai/skill.git /tmp/skill
-cp -r /tmp/skill/skills/nextjs-conventions ~/.workbuddy-ai/skills/
+git clone --depth 1 https://github.com/yanzhangshuai/skills.git /tmp/skills
+cp -r /tmp/skills/skills/nextjs-conventions ~/.workbuddy-ai/skills/
 ```
 
 ```powershell
-git clone --depth 1 https://github.com/yanzhangshuai/skill.git $env:TEMP\skill
-Copy-Item -Recurse $env:TEMP\skill\skills\nextjs-conventions $env:USERPROFILE\.workbuddy-ai\skills\
+git clone --depth 1 https://github.com/yanzhangshuai/skills.git $env:TEMP\skills
+Copy-Item -Recurse $env:TEMP\skills\skills\nextjs-conventions $env:USERPROFILE\.workbuddy-ai\skills\
 ```
 
 ## 各 agent 的技能目录对照
