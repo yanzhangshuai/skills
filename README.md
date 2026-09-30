@@ -89,6 +89,18 @@ standards/
 **改规则的正确姿势**：改 `rules/<file>.md` → 跑 `node tools/build-agents.mjs skills/<技能名>`
 重新生成 `AGENTS.md`。**不要直接改 `AGENTS.md`**，它会被下一次编译覆盖。
 
+改完再跑一次自检：
+
+```bash
+node tools/check-skills.mjs        # 无参数 = 检查本仓全部技能
+```
+
+它查 7 件事：每个文件前缀有对应分节、frontmatter 五个字段齐全、每条规则都有 Reference 链接、
+`SKILL.md` 索引覆盖全部规则（无悬空也无遗漏）、`SKILL.md` 与 `metadata.json` 声明的
+条数 / 分节数与实际一致、`AGENTS.md` 含全部规则标题且分节顺序正确、
+**`Correct` 示例里没有非空断言**（与 `type-no-escape-hatches` 冲突的那类错误 ——
+人工看会漏，脚本抓得到）。
+
 ## 设计要点
 
 **`rules/` 是唯一真源。** `SKILL.md` 的索引、`AGENTS.md` 的合订本都从它派生，
