@@ -1,74 +1,85 @@
-# AI 代码规范（standards）
+# standards
 
-跨技术栈（React / Vue / Nuxt / NestJS）的统一代码规范，用于**生成新项目**。
+NestJS 与 React 的代码规范，以 **agent skill** 的形式提供。
 
 目标：**在任意电脑、任意位置都能用**。
 
-## 安装到新机器
+## 安装
 
 ```bash
 git clone <本仓地址> <任意目录>
-bash <任意目录>/bootstrap.sh          # 幂等，重复跑只更新指向
+bash <任意目录>/bootstrap.sh
 ```
 
-`bootstrap.sh` 会从**脚本自身位置**推导仓路径（零硬编码），然后：
+纯 Windows（没有 WSL / Git Bash）：
 
-- 装 WorkBuddy Skill → `~/.workbuddy-ai/skills/code-standards/`
-  （Skill 正文从 `entry/SKILL.md` 复制，**仓是唯一事实源**）
-- 写 `home` 指针文件 —— Skill 靠它定位仓
+```powershell
+powershell -ExecutionPolicy Bypass -File <任意目录>\bootstrap.ps1
+```
+
+两个脚本行为一致、都幂等，从**脚本自身位置**推导仓路径（零硬编码）：
+
+- 把 `skills/*` 同步到 `~/.workbuddy-ai/skills/`
 - 若装了 Claude Code，写 `~/.claude/code-standards.md` 并在 `CLAUDE.md` 里加一行 import
 
 可选参数：`--print`（只打印不落盘）、`--claude`、`--all`。
 
-**仓挪了位置怎么办**：在新位置重跑一次 `bootstrap.sh` 即可，指针会跟着更新。
+> 技能是**自包含**的（`SKILL.md` + `references/`），装完之后不依赖仓的位置。
+> 仓挪了位置不用管；**改了仓里的内容，要重跑一次 bootstrap 才会同步**。
 
-## 可移植性的三层
+## 用法
 
-```
-内容层  规范仓零绝对路径，可 clone 到任意位置、任意机器
-  ↓
-入口层  bootstrap 幂等、自适应路径，跑一次装好本机入口
-  ↓
-项目层  生成的新项目自带 AGENTS.md + ESLint + 目录骨架
-        此后不依赖前两层 —— 项目走到哪，规范跟到哪
-```
+生成新项目时，读对应技能的 `SKILL.md` 并按它的工作流走。
 
-第三层最容易被忽略，但它才是真正的可移植性：**规范要能跟着项目走，
-而不是要求项目回头找规范。**
+> 💡 **触发更可靠的做法**：在 prompt 里显式带上技能名，例如
+> 「用 react-best-practices，建一个 Todo 应用」。
+> 不显式点名时，技能的触发依赖 prompt 与 description 的关键词匹配度，可能不稳定。
 
-## 目录
+## 可用技能
 
-| 路径 | 作用 | 状态 |
+| 技能 | 适用 | 覆盖 |
 |---|---|---|
-| `AGENTS.md` | **跨工具入口**（Claude Code / Codex / Cursor 都读它） | 已写 |
-| `bootstrap.sh` | 任意机器上安装入口 | 已写 |
-| `entry/SKILL.md` | WorkBuddy Skill 模板（bootstrap 会复制它） | 已写 |
-| `core/L0-principles.md` | 原则 —— 为什么这么写，不随技术栈变 | 待写 |
-| `core/L1-rules.md` | 通用规则 —— 约 15 条铁律 | 待写 |
-| `stacks/` | React / Vue / Nuxt / NestJS 的具体写法 | 待写 |
-| `enforce/` | ESLint / tsconfig / 目录结构检查 | 待写 |
-| `templates/` | 项目骨架 | 待写 |
-| `DECISIONS.md` | 待裁决清单 | **进行中** |
+| `react-best-practices` | React 19 + TypeScript + Vite + Tailwind | 状态语义、异步动作、错误处理、目录分层 |
+| `nestjs-best-practices` | NestJS | 待写 |
 
-## 四层结构
+## 结构
 
 ```
-L0  原则        为什么这么写                       全栈共享
-L1  通用规则     目录 / 命名 / 状态 / 错误 / 类型      全栈共享
-L2  栈适配       React / Vue / Nuxt / NestJS         每栈一份
-L3  强制        ESLint / tsconfig / 结构检查          可执行
+standards/
+├── AGENTS.md         跨工具入口（Claude Code / Codex / Cursor 都读它）
+├── README.md         本文件
+├── DECISIONS.md      待裁决清单
+├── bootstrap.sh      安装入口（macOS / Linux / WSL / Git Bash）
+├── bootstrap.ps1     安装入口（纯 Windows，UTF-8 with BOM）
+└── skills/
+    ├── react-best-practices/
+    │   ├── SKILL.md
+    │   └── references/*.md
+    └── nestjs-best-practices/
+        └── (待写)
 ```
 
-L0 + L1 全栈共享，是「可读性」的真正来源；L2 只是翻译层；
-L3 让规则不可绕过 —— 没有 L3，规范就是装饰品。
+## 设计要点
 
-## 硬约束
+**分层，不是分栈。** 大部分规则与技术栈无关（目录分层、命名、状态语义、错误处理）。
+按栈写成几份文档必然漂移 —— 所以通用规则用**同一套措辞**在各技能里复述，
+而不是各自发明。
 
-1. **只用于生成新项目** —— 不改造已有项目
-2. **薄而硬** —— 只收真正影响可读性、且能被检查的规则。规范越短越有人遵守
-3. **分层不分栈** —— 大部分规则与技术栈无关，写四遍必然漂移
-4. **框架优先** —— 框架有强制约定就跟框架，框架留白的才统一
-5. **零绝对路径** —— 本仓内部引用一律用相对路径
+**索引 + references。** `SKILL.md` 只放工作流和「什么时候该读哪份」，
+细节全部下沉到 `references/`。agent 一次能读的量有限，把细节塞进 SKILL.md
+会让真正重要的规则被淹掉。
+
+**每条规则要能改变行为。** 写之前先问：不加这条，模型会不会写错？
+本来就会写对的规则只是噪声。Capability（没它就会错）必须写；
+Efficiency（能做对但做不好）要克制。
+
+**可移植性的三层**：
+
+```
+内容层  仓零绝对路径，可 clone 到任意位置
+入口层  bootstrap 幂等 + 自适应路径
+项目层  生成的项目自带规范 —— 项目走到哪，规范跟到哪
+```
 
 ## 来源
 
@@ -78,8 +89,9 @@ L3 让规则不可绕过 —— 没有 L3，规范就是装饰品。
 - `web/presentation-ai` —— Nuxt 4.2 + Vue 3.5 + Tailwind 4 + Prisma
 - `net/TodoSystem/TodoSystem.WebClient` —— React 19 + Vite 7 + Tailwind 4
 
-冲突处见 `DECISIONS.md`。
+格式参考 [vuejs-ai/skills](https://github.com/vuejs-ai/skills)。
 
 ## 当前状态
 
-**规范尚未定稿。** `DECISIONS.md` 里有 16 条待拍板。
+**尚未定稿。** `DECISIONS.md` 里有 16 条待拍板 —— 那些是规则的**内容**，
+拍板后才会落进各个技能的 `references/`。

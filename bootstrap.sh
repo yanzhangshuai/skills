@@ -36,7 +36,7 @@ echo "规范仓位置：$STANDARDS_HOME"
 
 # 校验它确实是个规范仓（防止脚本被单独拷走）
 MISSING=""
-for must in AGENTS.md entry/SKILL.md DECISIONS.md; do
+for must in AGENTS.md DECISIONS.md skills; do
   [ -e "$STANDARDS_HOME/$must" ] || MISSING="$MISSING $must"
 done
 if [ -n "$MISSING" ]; then
@@ -50,33 +50,45 @@ echo
 
 INSTALLED=""
 
-# ───────────── 2. WorkBuddy Skill ─────────────
+# ───────────── 2. WorkBuddy Skills ─────────────
+# 每个 skills/<name>/ 整体同步到 ~/.workbuddy-ai/skills/<name>/
+# 技能是**自包含**的（SKILL.md + references/），不依赖仓的位置 ——
+# 所以换机器、仓挪位置都不影响已装的技能；只是内容会旧，重跑本脚本即可更新。
 WB_HOME="${WORKBUDDY_HOME:-$HOME/.workbuddy-ai}"
 if [ -d "$WB_HOME" ]; then
-  SKILL_DIR="$WB_HOME/skills/code-standards"
   echo "── WorkBuddy ──"
-  if [ "$DRY" -eq 1 ]; then
-    echo "  [dry-run] mkdir -p $SKILL_DIR"
-    echo "  [dry-run] cp $STANDARDS_HOME/entry/SKILL.md → $SKILL_DIR/SKILL.md"
-    echo "  [dry-run] 写 $SKILL_DIR/home = $STANDARDS_HOME"
-  else
-    mkdir -p "$SKILL_DIR"
-    cp "$STANDARDS_HOME/entry/SKILL.md" "$SKILL_DIR/SKILL.md"
-    # home 指针：Skill 靠它定位仓。换机器/仓挪了位置，重跑 bootstrap 即更新。
-    # 写成**多行** —— 同一台机器上「Windows 侧」和「WSL 内」看到的路径形式不同
-    # （//wsl$/Ubuntu/home/x  vs  /home/x），Skill 逐行尝试，用第一个能读到的。
-    {
-      printf '%s\n' "$STANDARDS_HOME"
-      if printf '%s' "$STANDARDS_HOME" | grep -q '^//wsl\$/'; then
-        # //wsl$/Ubuntu/home/x/... → 再补一个 Linux 形式 /home/x/...
-        printf '%s\n' "$STANDARDS_HOME" | sed 's|^//wsl\$/[^/]*||'
-      fi
-    } > "$SKILL_DIR/home"
-    echo "  ✅ Skill  → $SKILL_DIR/SKILL.md"
-    echo "  ✅ 指针  → $SKILL_DIR/home"
+  SKILLS_SRC="$STANDARDS_HOME/skills"
+
+  # 清理旧版单技能安装。认自己的 home 指针当标记，避免误删别的技能。
+  LEGACY="$WB_HOME/skills/code-standards"
+  if [ -f "$LEGACY/home" ]; then
+    if [ "$DRY" -eq 1 ]; then
+      echo "  [dry-run] 移除旧版技能 $LEGACY"
+    else
+      rm -rf "$LEGACY"
+      echo "  ✅ 已移除旧版技能 code-standards"
+    fi
   fi
+
+  for src in "$SKILLS_SRC"/*/; do
+    [ -d "$src" ] || continue
+    [ -f "$src/SKILL.md" ] || continue   # 空目录（还没写的技能）直接跳过
+    name="$(basename "$src")"
+    dst="$WB_HOME/skills/$name"
+    if [ "$DRY" -eq 1 ]; then
+      echo "  [dry-run] $name → $dst"
+    else
+      mkdir -p "$dst"
+      cp -f "$src/SKILL.md" "$dst/SKILL.md"
+      if [ -d "$src/references" ]; then
+        mkdir -p "$dst/references"
+        cp -f "$src"/references/*.md "$dst/references/" 2>/dev/null || true
+      fi
+      echo "  ✅ $name → $dst"
+    fi
+  done
   INSTALLED="$INSTALLED
-  · WorkBuddy Skill   $SKILL_DIR"
+  · WorkBuddy Skills  $WB_HOME/skills/"
   echo
 fi
 
@@ -95,12 +107,13 @@ if [ -d "$CLAUDE_HOME" ] || [ "$WANT_CLAUDE" -eq 1 ] || [ "$WANT_ALL" -eq 1 ]; t
 
 规范仓：\`$STANDARDS_HOME\`
 
-生成新项目时按顺序读：
-1. \`$STANDARDS_HOME/AGENTS.md\`
-2. \`$STANDARDS_HOME/core/L1-rules.md\`
-3. \`$STANDARDS_HOME/stacks/<栈>.md\`
+可用 skill：
+- \`react-best-practices\` —— React 19 + TypeScript + Vite + Tailwind
+- \`nestjs-best-practices\` —— NestJS
 
-硬约束：只用于生成新项目 · 薄而硬 · 分层不分栈 · 框架优先 · 生成的项目要自带规范。
+生成新项目时先读 \`$STANDARDS_HOME/skills/<name>/SKILL.md\`，按它的工作流走。
+
+硬约束：只用于生成新项目 · 薄而硬 · 分层不分栈 · 框架优先。
 当前状态：**尚未定稿**，\`$STANDARDS_HOME/DECISIONS.md\` 有 16 条待拍板。
 EOF
     echo "  ✅ 指针 → $POINTER"
@@ -135,6 +148,6 @@ echo
 echo "规范仓：$STANDARDS_HOME"
 echo
 echo "本机验证："
-echo "  ls -l \"\${WORKBUDDY_HOME:-\$HOME/.workbuddy-ai}/skills/code-standards/\""
+echo "  ls -l \"\${WORKBUDDY_HOME:-\$HOME/.workbuddy-ai}/skills/\""
 echo
 echo "⚠️ 规范尚未定稿 —— DECISIONS.md 有 16 条待拍板。"
