@@ -18,11 +18,11 @@
 
 | 技能 | 适用项目 | 规则数 | 分节 |
 |---|---|---|---|
-| [`nextjs-conventions`](skills/nextjs-conventions/) | Next.js App Router + React 19 + TypeScript | **52** | 14 |
+| [`nextjs-conventions`](skills/nextjs-conventions/) | Next.js App Router + React 19 + TypeScript | **54** | 14 |
 | [`vite-react-conventions`](skills/vite-react-conventions/) | React 19 + TypeScript + Vite（**无 Next.js**） | **25** | 9 |
 
 > **两份永久分开**：一个项目要么是 Next.js、要么是 Vite + React，不会两者都是。
-> 栈无关的规则（状态语义、异步动作、错误位置、命名、导入分组、注释）两份**共享 16 条**、措辞一致；
+> 栈无关的规则（状态语义、异步动作、错误位置、命名、导入分组、注释）两份**共享 18 条**、措辞一致；
 > 栈相关的部分各写各的。**同一个项目只装其中一份。**
 >
 > 后续会继续加（`nestjs-conventions` 等），新增技能照「四、改规则 / 加技能」的流程走。
@@ -36,7 +36,7 @@
 /home/mwjz/code/skills/          ← 仓根
 ├── README.md                    本文件
 ├── LICENSE                      MIT
-├── DECISIONS.md                 待裁决清单（内部工作稿，不是技能的一部分）
+├── DECISIONS.md                 裁决记录（内部工作稿，不是技能的一部分）
 ├── tools/
 │   ├── build-agents.mjs         把 rules/ 编译成 AGENTS.md
 │   └── check-skills.mjs         一致性自检（7 项）
@@ -48,7 +48,7 @@
     │   └── rules/
     │       ├── _sections.md     分节定义（顺序 / 影响等级 / 文件名前缀）
     │       ├── _template.md     单条规则的骨架
-    │       └── <prefix>-<slug>.md   52 条规则
+    │       └── <prefix>-<slug>.md   54 条规则
     └── vite-react-conventions/
         └── ...                  同上，25 条规则
 ```
@@ -212,7 +212,7 @@ node tools/check-skills.mjs                   # 一致性自检（7 项）
 服务端用模块级 `Map` 缓存 promise（模块作用域在服务端是进程级的，会跨请求、跨用户串数据）、
 以及 Server Action 靠抛异常传业务错误（生产环境会被框架清洗，用户只看到一句通用报错）。
 
-**尚未做第三轮验证**；52 条里还有约三分之一没被任务覆盖到。
+**尚未做第三轮验证**；54 条里还有约三分之一没被任务覆盖到。
 
 ---
 

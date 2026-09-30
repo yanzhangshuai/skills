@@ -1,6 +1,6 @@
 ---
 title: 条件允许时用通行缩写，不自造缩写
-order: 4
+order: 5
 impact: HIGH
 impactDescription: 名字短一截，读代码的人不用为它多停一次
 tags: naming, abbreviation, brevity, convention

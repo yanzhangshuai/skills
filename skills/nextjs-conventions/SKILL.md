@@ -10,7 +10,7 @@ metadata:
 # Next.js 项目约定
 
 Next.js App Router + React 19 + TypeScript 项目的**架构与可读性**规范。
-52 条规则，14 个分节，按影响等级排序。
+54 条规则，14 个分节，按影响等级排序。
 
 > **和 Vercel 那两份的分工**（三份**零重叠**，应叠加使用）：
 >
@@ -51,10 +51,10 @@ Next.js App Router + React 19 + TypeScript 项目的**架构与可读性**规范
 | 3 | 错误处理 | CRITICAL | `error-` | 5 |
 | 4 | RSC 边界 | CRITICAL | `rsc-` | 6 |
 | 5 | 数据读取 | CRITICAL | `data-` | 9 |
-| 6 | 目录与边界 | HIGH | `layout-` | 4 |
+| 6 | 目录与边界 | HIGH | `layout-` | 5 |
 | 7 | 组件 | HIGH | `component-` | 6 |
 | 8 | 类型与校验 | HIGH | `type-` | 3 |
-| 9 | 命名 | HIGH | `naming-` | 4 |
+| 9 | 命名 | HIGH | `naming-` | 5 |
 | 10 | 逻辑抽离 | MEDIUM | `extract-` | 3 |
 | 11 | 样式与布局 | MEDIUM | `style-` | 2 |
 | 12 | 重渲染 | MEDIUM | `render-` | 2 |
@@ -109,6 +109,7 @@ Next.js App Router + React 19 + TypeScript 项目的**架构与可读性**规范
 - `layout-directory-boundaries` — 每个目录的「做」与「不做」
 - `layout-alias-sync` — `tsconfig.json` 的 `paths` 与打包器别名必须同步
 - `layout-module-direction` — 层间依赖单向，禁止循环依赖
+- `layout-env-single-source` — 环境变量走单一配置模块；`NEXT_PUBLIC_` 构建期内联，无前缀的客户端读是静默 `undefined`
 
 ### 7. 组件（HIGH）
 
@@ -130,6 +131,7 @@ Next.js App Router + React 19 + TypeScript 项目的**架构与可读性**规范
 - `naming-file-case` — 组件文件 PascalCase，其他文件 kebab-case
 - `naming-language` — 标识符用英文，注释与文档用中文
 - `naming-identifier-conventions` — 布尔 `is/has/should/can` 前缀，常量 SCREAMING_SNAKE，hook 以 `use` 开头且体现领域
+- `naming-interface-vs-type` — 对象形状用 `interface`，联合与工具类型用 `type`
 - `naming-brevity` — 条件允许时用通行缩写（`pwd`、`minW`），不自造缩写；导出的名字不缩写
 
 ### 10. 逻辑抽离（MEDIUM）
@@ -188,6 +190,7 @@ Next.js App Router + React 19 + TypeScript 项目的**架构与可读性**规范
 - [ ] 没有 `<a><button/></a>` 这类无效嵌套
 - [ ] 外部输入（AI 输出 / 请求体 / URL 参数）都过了 Zod
 - [ ] 没有 `any` / `!` / `@ts-ignore`
+- [ ] 对象形状用 `interface`、联合与工具类型用 `type`；有 schema 来源的用 `z.infer` 而非手写
 - [ ] 读用 `loading`、动作用 `pending`；**写动作**都走统一外壳（读取的 `loading` 由状态承担，不必套外壳）
 - [ ] Server Action 的业务错误是 `return` 回来的、不是抛出去的；`try/catch` 里有 `unstable_rethrow`
 - [ ] `use()` 的 promise 在渲染外创建；服务端缓存用 React 的 `cache()`，没有模块级 `Map`
@@ -195,6 +198,7 @@ Next.js App Router + React 19 + TypeScript 项目的**架构与可读性**规范
 - [ ] effect 依赖数组长度与顺序恒定，派生数组都过了 `useMemo`
 - [ ] 高频交互里没有 no-op 状态写入（语义未变就返回 `prev`）
 - [ ] 文件名大小写符合约定，两处别名配置一致
+- [ ] 环境变量只从 config 模块读，没有散落 `process.env`；服务端配置带 `import 'server-only'`
 - [ ] 命名没有自造缩写；导出的 props / 函数名没有被缩写
 - [ ] 导入分了四组、组间有空行，类型导入标了 `type`
 - [ ] 缓存用 `"use cache"`（确认 `cacheComponents` 已开），没有 `unstable_cache`；

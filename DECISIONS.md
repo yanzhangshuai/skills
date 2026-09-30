@@ -1,8 +1,34 @@
-# 待裁决清单
+# 裁决清单
+
+> **16 条已全部裁决完毕（2026-09-30）。** 下面保留原始的**现状 / 建议 / 理由**以备回溯，
+> 每条下方补了「裁决」行。
+> **规则本身以 `skills/*/rules/` 为准 —— 那里是唯一真源**，本文件只是决策记录，不重复规则内容。
+
+## 裁决结果总表
+
+| 编号 | 主题 | 裁决 | 落地位置 |
+|---|---|---|---|
+| D1 | 框架优先于规范 | 采纳（原则） | `layout-app-tree` / `layout-fixed-src-tree` |
+| D2 | 五个核心目录定名 | 采纳（React 部分） | `layout-fixed-src-tree` |
+| D3 | `loading` / `pending` | 采纳 | `state-loading-vs-pending`、`state-rename-at-destructure` |
+| D4 | 异步错误处理 | 采纳 | `error-inline-not-boundary`、`error-api-message-first`、`action-*`（3 条） |
+| D5 | 组件按域组织 | 采纳 | `layout-components-by-domain`、`layout-directory-boundaries` |
+| D6 | 页面逻辑抽离 | 采纳 | `extract-*`（5 条） |
+| D7 | 格式化基座 `@antfu/eslint-config` | **作废** | 与「格式归工具」冲突 |
+| D8 | 行宽 100 | **作废** | 同上 |
+| D9 | 语言 | 采纳 | `naming-language` |
+| D10 | 文件命名 | 采纳 | `naming-file-case` |
+| D11 | 路径别名同步 | 采纳 | `layout-alias-sync` |
+| D12 | `interface` vs `type` | 采纳 | `naming-interface-vs-type`（两份） |
+| D13 | API 层职责边界 | 采纳（仅 Vite） | `layout-no-fetch-in-components` |
+| D14 | 环境变量单一来源 | 采纳 | `layout-env-single-source`（两份） |
+| D15 | commit 信息格式 | **不进技能** | 项目自管（已有 commitlint） |
+| D16 | 测试 | **不进技能** | 三个参考项目均无测试配置 |
+
+---
 
 制定统一代码规范的第一版。每条包含**现状 / 建议 / 理由**。
-
-**回复方式**：说「全部同意」，或列出要改的条目编号 + 你的意见。
+（以下为原始内容，保留以便回溯当时的判断依据。）
 
 范围约定（已定）：只用于**生成新项目**，不改造已有项目；第一版**薄而硬**，只收真正影响
 可读性、且能被检查的规则；规范放独立仓（本仓），另做一个 Skill 作为生成入口。
@@ -12,6 +38,8 @@
 ## 一、总原则
 
 ### D1 · 框架约定与规范冲突时，谁优先？
+
+> **裁决 2026-09-30**：采纳为**总原则** —— 框架强制的跟框架，只有框架留白的地方才统一。已隐含在 `layout-app-tree` 与 `layout-fixed-src-tree` 里。
 
 **现状**：三个项目各写各的 —— `hooks/`（aippt-home、TodoSystem）vs `composables/`
 （presentation-ai）；`apis/` vs `services/`；`store/` vs `stores/`。
@@ -31,6 +59,8 @@
 
 ### D2 · 五个核心目录的最终名字
 
+> **裁决 2026-09-30**：采纳（**React 部分**）—— `apis/` `stores/` `types/` `utils/`。Vue / Nuxt 那半随「不做 Vue」失效。落地于 `layout-fixed-src-tree`。
+
 | 概念 | aippt-home | presentation-ai | TodoSystem | **建议** |
 |---|---|---|---|---|
 | 接口调用 | `apis/` | `services/` | `apis/` | **`apis/`** |
@@ -48,6 +78,8 @@
 ## 二、状态与错误
 
 ### D3 · 进行中状态怎么命名
+
+> **裁决 2026-09-30**：采纳 —— 落地为 `state-loading-vs-pending` + `state-rename-at-destructure`。
 
 **现状**：TodoSystem 已经沉淀并写进了代码注释；另两个项目没有明确规则。
 
@@ -67,6 +99,8 @@ const { pending: linking } = useBindGoogle()     // 和上面那个撞名了
 
 ### D4 · 异步错误怎么处理
 
+> **裁决 2026-09-30**：采纳 —— 落地为 `error-inline-not-boundary`、`error-api-message-first`、`action-single-wrapper`、`action-return-boolean`、`action-expose-set-error`。
+
 **建议**：
 
 1. **错误就地显示**（表单下方那行红字），不冒到 Error Boundary —— 否则用户填错一个字段，
@@ -83,6 +117,8 @@ const { pending: linking } = useBindGoogle()     // 和上面那个撞名了
 
 ### D5 · 组件怎么组织
 
+> **裁决 2026-09-30**：采纳 —— 落地为 `layout-components-by-domain` + `layout-directory-boundaries`。
+
 **现状**：aippt-home 平铺 60+ 个文件；presentation-ai 按域分
 `ui/ common/ dashboard/ outline-editor/ ppt-editor/ presentation/`。
 
@@ -93,6 +129,8 @@ const { pending: linking } = useBindGoogle()     // 和上面那个撞名了
 ---
 
 ### D6 · 页面里放多少逻辑
+
+> **裁决 2026-09-30**：采纳 —— 落地为 `extract-triggers`、`extract-one-page-one-hook`、`extract-page-hook`、`extract-shared-hook-threshold`、`extract-dont-over-split`。
 
 **建议**：**页面只画 UI，逻辑进 `hooks/` / `composables/`。**
 触发条件：页面里 `useState`（Vue 里是 `ref`）超过 2 个，或出现 `try/catch`。
@@ -105,6 +143,8 @@ const { pending: linking } = useBindGoogle()     // 和上面那个撞名了
 ## 四、格式与工具
 
 ### D7 · 格式化基座
+
+> **裁决 2026-09-30**：**作废** —— 与后来拍板的「格式归工具，语义归规范」冲突。`@antfu/eslint-config` 是项目脚手架的选择，不是 AI 写代码时要守的约定。
 
 **现状**：aippt-home 自组 `@vue/eslint-config` + Prettier；presentation-ai 用
 `@antfu/eslint-config`；TodoSystem 没有任何配置。
@@ -119,6 +159,8 @@ const { pending: linking } = useBindGoogle()     // 和上面那个撞名了
 
 ### D8 · 行宽（唯一真实分歧）
 
+> **裁决 2026-09-30**：**作废** —— 同上。行宽是 `--fix` 能修的纯格式项，写进技能只会与项目自己的配置打架。
+
 **现状**：aippt-home `printWidth: 118`；presentation-ai 用 antfu 默认；TodoSystem 未设。
 
 **建议**：**100**。
@@ -132,6 +174,8 @@ const { pending: linking } = useBindGoogle()     // 和上面那个撞名了
 
 ### D9 · 语言
 
+> **裁决 2026-09-30**：采纳 —— 落地为 `naming-language`。commit message 那半不进技能（见 D15）。
+
 **建议**：**注释、commit message、文档用中文；标识符（变量 / 函数 / 类型 / 文件名）用英文。**
 
 **理由**：`aippt-home/CLAUDE.md` 已经在要求中文输出。标识符保持英文是因为要和框架 API、
@@ -140,6 +184,8 @@ const { pending: linking } = useBindGoogle()     // 和上面那个撞名了
 ---
 
 ### D10 · 文件命名
+
+> **裁决 2026-09-30**：采纳 —— 落地为 `naming-file-case`。
 
 **建议**：组件文件 **PascalCase**（`LoginPage.tsx` / `LoginPage.vue`）；
 其他文件 **kebab-case**（`use-async-action.ts`、`google-identity.ts`）。
@@ -150,6 +196,8 @@ const { pending: linking } = useBindGoogle()     // 和上面那个撞名了
 
 ### D11 · 路径别名
 
+> **裁决 2026-09-30**：采纳 —— 落地为 `layout-alias-sync`。
+
 **建议**：**Nuxt 用 `~/`（框架约定）；其他用 `@/` → `src/`。**
 且 `tsconfig.json` 的 `paths` 与打包器的 `resolve.alias` **必须同步修改**。
 
@@ -158,6 +206,8 @@ const { pending: linking } = useBindGoogle()     // 和上面那个撞名了
 ---
 
 ### D12 · 类型
+
+> **裁决 2026-09-30**：采纳 —— 落地为 `naming-interface-vs-type`。**2026-09-30 补进 nextjs**（此前只有 vite）。
 
 **建议**：描述对象形状用 `interface`；联合、工具、映射类型用 `type`。
 共享类型进 `types/`，只在一个文件里用的就地定义。
@@ -168,6 +218,8 @@ const { pending: linking } = useBindGoogle()     // 和上面那个撞名了
 
 ### D13 · API 层的职责边界
 
+> **裁决 2026-09-30**：采纳（**仅 Vite**）—— 落地为 `layout-no-fetch-in-components`。Next.js 不适用：RSC 本就该在服务端取数。
+
 **建议**：`apis/` **只做「发请求 + 类型转换」**，不做业务判断、不碰 UI 状态。
 **禁止在页面 / 组件里直接 `fetch`。**
 
@@ -177,6 +229,8 @@ const { pending: linking } = useBindGoogle()     // 和上面那个撞名了
 
 ### D14 · 环境变量
 
+> **裁决 2026-09-30**：采纳 —— 落地为 `layout-env-single-source`。**2026-09-30 补进 nextjs**，并补上了 `NEXT_PUBLIC_` 构建期内联、无前缀客户端静默 `undefined`、`server-only` 三个 Next 特有的坑。
+
 **建议**：统一走一个配置模块读取，**禁止散落 `import.meta.env` / `process.env`**。
 
 ---
@@ -185,9 +239,13 @@ const { pending: linking } = useBindGoogle()     // 和上面那个撞名了
 
 ### D15 · 提交信息格式
 
+> **裁决 2026-09-30**：**不进技能** —— commit 格式由项目自管（`plovax-server` 已有 `commitlint.config.js`）。
+
 你们用 Conventional Commits（`feat: xxx`）还是自由格式？前缀用英文还是中文？
 
 ### D16 · 测试
+
+> **裁决 2026-09-30**：**不进技能** —— 三个参考项目均无测试配置，写「强制带测试」会让 AI 给每个组件配一份测试，与现状落差太大。
 
 三个参考项目都没看到测试配置。新项目要不要强制带测试？如果要，用 vitest 还是别的？
 

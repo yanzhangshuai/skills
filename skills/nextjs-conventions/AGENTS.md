@@ -3,7 +3,7 @@
 > ⚠️ 本文件由 `tools/build-agents.mjs` 从 `rules/` 自动生成 —— **不要手改**。
 > 改 `rules/<file>.md` 之后重新生成：`node tools/build-agents.mjs`
 
-Next.js App Router + React 19 + TypeScript 项目的架构与可读性规范，面向 AI agent。含 52 条规则、14 个分节，按影响等级从 critical（状态语义、异步动作、错误处理、RSC 边界、数据读取）到 incremental（逻辑抽离、样式与布局、重渲染、代码格式、注释）排序。每条规则给出反例与正例对照。内容来自 wen-yuan 项目的真实沉淀（.trellis/spec）与 TodoSystem 的踩坑记录，不是通用最佳实践的复述。与 Vercel 的 vercel-react-best-practices（性能）和 vercel-next-best-practices（文件约定）互补：那两份管性能与 API 用法，这份管项目结构、命名、状态语义、错误位置与组件骨架。
+Next.js App Router + React 19 + TypeScript 项目的架构与可读性规范，面向 AI agent。含 54 条规则、14 个分节，按影响等级从 critical（状态语义、异步动作、错误处理、RSC 边界、数据读取）到 incremental（逻辑抽离、样式与布局、重渲染、代码格式、注释）排序。每条规则给出反例与正例对照。内容来自 wen-yuan 项目的真实沉淀（.trellis/spec）与 TodoSystem 的踩坑记录，不是通用最佳实践的复述。与 Vercel 的 vercel-react-best-practices（性能）和 vercel-next-best-practices（文件约定）互补：那两份管性能与 API 用法，这份管项目结构、命名、状态语义、错误位置与组件骨架。
 
 ## 目录
 
@@ -47,6 +47,7 @@ Next.js App Router + React 19 + TypeScript 项目的架构与可读性规范，�
    - 6.2 每个目录的做与不做
    - 6.3 tsconfig 与打包器的别名必须同步
    - 6.4 层间依赖单向，禁止循环依赖
+   - 6.5 环境变量走单一配置模块
 
 7. **组件**（HIGH）
    - 7.1 强制 interface <ComponentName>Props
@@ -65,7 +66,8 @@ Next.js App Router + React 19 + TypeScript 项目的架构与可读性规范，�
    - 9.1 组件 PascalCase，其他 kebab-case
    - 9.2 标识符英文，注释与文档中文
    - 9.3 布尔前缀、常量与 hook 命名
-   - 9.4 条件允许时用通行缩写，不自造缩写
+   - 9.4 对象形状用 interface，联合与工具类型用 type
+   - 9.5 条件允许时用通行缩写，不自造缩写
 
 10. **逻辑抽离**（MEDIUM）
    - 10.1 页面级编排 hook 不受两处复用约束
@@ -1783,6 +1785,68 @@ rg -n "from ['\"]@/server" src/components src/app --glob '!**/*.server.tsx'
 
 Reference: [Next.js: Server and Client Components（边界）](https://nextjs.org/docs/app/building-your-application/rendering/composition-patterns)
 
+### 6.5 环境变量走单一配置模块
+
+**影响：HIGH** — 环境清单收敛到一处，且避开 NEXT_PUBLIC_ 的构建期内联与静默 undefined
+
+统一走一个配置模块读取，**禁止散落 `process.env.X`**。
+
+散落的直接后果：换个部署环境时不知道要配哪些变量 ——
+读取点分布在几十个文件里，没有任何一处能列出完整清单。
+
+Next.js 还多两个坑，**散落读取时都不报错**，只在部署后表现为「值不对」或 `undefined`：
+
+- **`NEXT_PUBLIC_` 前缀的变量在构建时被内联进客户端 bundle** —— 值被固化在产物里。
+  改完 `.env` 必须**重新构建**，重启服务没用；用同一个产物部署到两个环境，两个环境拿到同一个值。
+- **不带 `NEXT_PUBLIC_` 的变量在客户端读永远是 `undefined`**，而且**不报错**。
+  在 `"use client"` 文件里写 `process.env.SECRET_KEY` 是静默失效，不是编译错误。
+
+**Incorrect（各文件各自读，两个坑全踩）：**
+
+```ts
+// components/book-chart.tsx  ("use client")
+const secret = process.env.SECRET_KEY           // 永远是 undefined，且不报错
+
+// app/dashboard/page.tsx  (Client Component)
+const apiUrl = process.env.NEXT_PUBLIC_API_URL  // 构建时已内联，改 .env 不重新构建不生效
+
+// server/modules/book/services/book-service.ts
+const dbUrl = process.env.DATABASE_URL          // 还有多少个？没人知道
+```
+
+**Correct（客户端一份、服务端一份，各自集中校验）：**
+
+```ts
+// src/lib/config.ts —— 只放 NEXT_PUBLIC_，客户端组件可以导入
+export function required(key: string, value: string | undefined): string {
+  if (!value) throw new Error(`缺少环境变量 ${key}`)
+  return value
+}
+
+export const publicConfig = {
+  apiUrl: required('NEXT_PUBLIC_API_URL', process.env.NEXT_PUBLIC_API_URL),
+} as const
+```
+
+```ts
+// src/server/config.ts —— 服务端专用，加 server-only 挡住客户端导入
+import 'server-only'
+import { required } from '@/lib/config'
+
+export const serverConfig = {
+  dbUrl: required('DATABASE_URL', process.env.DATABASE_URL),
+  secretKey: required('SECRET_KEY', process.env.SECRET_KEY),
+} as const
+```
+
+`import 'server-only'` 会在**构建期**报错拦下「客户端组件导入了服务端配置」。
+没有它的话这种导入**能构建成功**，只是把密钥打进了客户端 bundle —— 等发现时已经发出去了。
+
+`required` 是无副作用的纯函数，所以 `server/` 依赖 `lib/` 不违反 `layout-module-direction`
+（那条禁的是 `server/**` 与 `components/**` 互导）。
+
+Reference: [Next.js: Environment Variables](https://nextjs.org/docs/app/guides/environment-variables)
+
 ---
 
 ## 7. 组件
@@ -2558,7 +2622,56 @@ function useBooks() { ... }
 
 Reference: [React: Reusing Logic with Custom Hooks（命名）](https://react.dev/learn/reusing-logic-with-custom-hooks)
 
-### 9.4 条件允许时用通行缩写，不自造缩写
+### 9.4 对象形状用 interface，联合与工具类型用 type
+
+**影响：HIGH** — 报错信息更短，类型扩展语义清晰
+
+- 描述**对象形状** → `interface`（可被 `extends`，报错时显示名字而不是展开的结构）
+- **联合、工具、映射类型** → `type`
+
+**Incorrect（一律用 `type`，或一律用 `interface`）：**
+
+```ts
+type Book = {                  // 对象形状用 type，报错时会展开整个结构
+  id: string
+  title: string
+}
+
+interface BookStatus {         // 联合类型用 interface 写不出来，只能硬凑成对象
+  value: 'draft' | 'published'
+}
+```
+
+**Correct（按用途分）：**
+
+```ts
+// 对象形状 → interface
+interface Book {
+  id: string
+  title: string
+}
+
+// 联合 → type
+type BookStatus = 'draft' | 'published'
+
+// 工具类型 → type
+type BookDraft = Partial<Omit<Book, 'id'>>
+
+// 需要扩展的 → interface
+interface Ebook extends Book {
+  fileSize: number
+}
+```
+
+共享类型放 `types/`；只在一个文件里用的就地定义，不要为了「统一」全塞进 `types/`。
+
+**和 `type-schema-is-source-of-truth` 的分工**：如果这个类型的来源是 Zod schema，
+一律用 `z.infer<typeof schema>`，**不要手写 `interface`** —— 手写就等于放弃了 schema 与类型的同步。
+**本条只管没有 schema 来源的类型**，两条不冲突。
+
+Reference: [TypeScript: Object Types](https://www.typescriptlang.org/docs/handbook/2/objects.html)
+
+### 9.5 条件允许时用通行缩写，不自造缩写
 
 **影响：HIGH** — 名字短一截，读代码的人不用为它多停一次
 
@@ -3210,9 +3323,11 @@ Reference: [TypeScript: JSDoc Reference](https://www.typescriptlang.org/docs/han
 - https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Destructuring
 - https://zod.dev
 - https://www.typescriptlang.org/tsconfig#paths
+- https://www.typescriptlang.org/docs/handbook/2/objects.html
 - https://nextjs.org/docs/app/api-reference/config/next-config-js/cacheComponents
 - https://nextjs.org/docs/app/api-reference/directives/use-cache
 - https://nextjs.org/docs/app/api-reference/functions/updateTag
 - https://nextjs.org/docs/app/api-reference/file-conventions/route
+- https://nextjs.org/docs/app/guides/environment-variables
 - https://www.typescriptlang.org/docs/handbook/jsdoc-supported-types.html
 - https://developer.mozilla.org/en-US/docs/MDN/Writing_guidelines/Writing_style_guide/Code_style_guide/JavaScript
