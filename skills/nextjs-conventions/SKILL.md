@@ -10,7 +10,7 @@ metadata:
 # Next.js 项目约定
 
 Next.js App Router + React 19 + TypeScript 项目的**架构与可读性**规范。
-43 条规则，12 个分节，按影响等级排序。
+45 条规则，13 个分节，按影响等级排序。
 
 > **和 Vercel 那两份的分工**（三份**零重叠**，应叠加使用）：
 >
@@ -51,6 +51,7 @@ Next.js App Router + React 19 + TypeScript 项目的**架构与可读性**规范
 | 10 | 逻辑抽离 | MEDIUM | `extract-` | 3 |
 | 11 | 样式与布局 | MEDIUM | `style-` | 2 |
 | 12 | 重渲染 | MEDIUM | `render-` | 2 |
+| 13 | 代码格式 | MEDIUM | `format-` | 2 |
 
 ## Quick Reference
 
@@ -133,6 +134,11 @@ Next.js App Router + React 19 + TypeScript 项目的**架构与可读性**规范
 - `render-stable-dependencies` — 依赖数组长度与顺序必须恒定；派生集合用 `useMemo` 稳定引用
 - `render-avoid-noop-state-write` — 高频交互里语义未变化时返回 `prev`，不造新引用
 
+### 13. 代码格式（MEDIUM）
+
+- `format-defer-to-tooling` — 引号 / 分号 / 尾逗号交给 ESLint，别手写；示例的标点不要照抄
+- `format-import-order` — 导入分四组（Node → 外部 → `@/` → 相对），组间空行；类型导入标 `type`
+
 ## 工作流
 
 生成新项目时按这个顺序走：
@@ -145,6 +151,8 @@ Next.js App Router + React 19 + TypeScript 项目的**架构与可读性**规范
 6. **异步一律走外壳** —— 按 `action-*` 建 `useAsyncAction`，不要每个动作手写一遍。
 7. **外部输入一律校验** —— 按 `type-*`，Zod 收窄，禁止裸 `as`。
 8. **最后才谈性能** —— 核心行为验证通过之前，不要动 memo / useMemo / 虚拟列表。
+9. **收尾交给工具** —— 按 `format-import-order` 排好导入，然后跑一次 `pnpm lint:fix`
+   让 ESLint 统一引号 / 分号 / 尾逗号。**别手工调标点**。
 
 **收尾自检**（逐条对）：
 
@@ -166,6 +174,8 @@ Next.js App Router + React 19 + TypeScript 项目的**架构与可读性**规范
 - [ ] effect 依赖数组长度与顺序恒定，派生数组都过了 `useMemo`
 - [ ] 高频交互里没有 no-op 状态写入（语义未变就返回 `prev`）
 - [ ] 文件名大小写符合约定，两处别名配置一致
+- [ ] 导入分了四组、组间有空行，类型导入标了 `type`
+- [ ] 提交前跑过 `pnpm lint:fix`（别手工调引号 / 分号 / 尾逗号）
 
 ## How to Use
 

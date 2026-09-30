@@ -3,7 +3,7 @@
 > ⚠️ 本文件由 `tools/build-agents.mjs` 从 `rules/` 自动生成 —— **不要手改**。
 > 改 `rules/<file>.md` 之后重新生成：`node tools/build-agents.mjs`
 
-React 19 + TypeScript + Vite 项目的架构与可读性规范，面向 AI agent。含 22 条规则、7 个分节，按影响等级从 critical（状态语义、异步动作、错误处理）到 incremental（逻辑抽离、React 19 边界）排序。每条规则给出反例与正例对照。内容来自 TodoSystem.WebClient 的真实沉淀，不是通用最佳实践的复述。与 Vercel 的 react-best-practices 互补：那份管性能，这份管结构与可读性，零重叠。
+React 19 + TypeScript + Vite 项目的架构与可读性规范，面向 AI agent。含 23 条规则、8 个分节，按影响等级从 critical（状态语义、异步动作、错误处理）到 incremental（逻辑抽离、React 19 边界、代码格式）排序。每条规则给出反例与正例对照。内容来自 TodoSystem.WebClient 的真实沉淀，不是通用最佳实践的复述。与 Vercel 的 react-best-practices 互补：那份管性能，这份管结构与可读性，零重叠。
 
 ## 目录
 
@@ -42,6 +42,9 @@ React 19 + TypeScript + Vite 项目的架构与可读性规范，面向 AI agent
 7. **React 19 边界**（MEDIUM）
    - 7.1 use() 是读取原语，不能替代动作 hook
    - 7.2 use(promise) 的 promise 必须在渲染外缓存
+
+8. **代码格式**（MEDIUM）
+   - 8.1 导入分三组，组内按字母序
 
 ---
 
@@ -1118,6 +1121,63 @@ function StudentList() {
 愿意维护 promise 缓存。否则就用普通的 `loading` + `useEffect`。
 
 Reference: [use](https://react.dev/reference/react/use)
+
+---
+
+## 8. 代码格式
+
+**影响：MEDIUM**
+
+本项目当前**只配了 `tsc --noEmit`，没有 ESLint / Prettier**，
+
+### 8.1 导入分三组，组内按字母序
+
+**影响：MEDIUM** — 依赖方向一眼可读，组内字母序免去顺序争论
+
+```ts
+// 1. 外部包
+import { useState, type FormEvent } from 'react'
+import { Link } from 'react-router-dom'
+
+// 2. 内部模块（@/ 别名），组内按字母序
+import { ErrorBanner, FormField } from '@/components'
+import { useLogin } from '@/hooks'
+import { AuthLayout } from '@/layouts'
+import { useAuth } from '@/stores'
+
+// 3. 相对路径
+import { useAsyncAction } from './use-async-action'
+```
+
+**组内按字母序，不是按重要性。** 目的不是好看，是**免掉争论** ——
+字母序没有「我觉得这个更重要」的余地，新加一行也不用想该放哪。
+本项目 `pages/LoginPage.tsx`、`hooks/use-students.ts` 都是这个排法。
+
+**组间是否空行跟项目现状走**：本项目不空行（导入区连续）；
+Next.js 那份按 `wen-yuan` 的习惯用组间空行。**两份别混。**
+
+**类型专用导入必须标 `type`：**
+
+```ts
+// ✅ 混合导入用行内 type
+import { useState, type FormEvent } from 'react'
+
+// ✅ 整个导入都是类型
+import type { Student } from '@/types'
+
+// ❌ 类型混在里面不标注
+import { Student, listStudents } from '@/apis'
+```
+
+不标 `type` 的后果不只是风格：打包器无法确定这个导入只用于类型，
+可能把整个模块保留进产物 —— 对一个只提供类型的模块来说，这是白带一份代码。
+
+**这条工具兜不住。** 本项目当前**只配了 `tsc --noEmit`，没有 ESLint / Prettier**，
+所以风格没有机器兜底，只能靠这份规范。
+（`eslint-plugin-import` 的 `import/order` 能查分组顺序，
+`@typescript-eslint/consistent-type-imports` 能查 `type` 标注 —— 以后补 lint 时优先开这两条。）
+
+Reference: [TypeScript: type-only imports](https://www.typescriptlang.org/docs/handbook/release-notes/typescript-3-8.html#type-only-imports-and-export)
 
 ---
 

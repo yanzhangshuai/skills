@@ -46,7 +46,7 @@ Claude Code 用 `~/.claude/skills/`，Cursor / Codex 项目级用 `.agents/skill
 
 | 技能 | 适用 | 覆盖 | 条数 |
 |---|---|---|---|
-| `nextjs-conventions` | Next.js App Router + React 19 + TS | RSC 边界、Next 15 异步 API、`use()` 读取与 SWR 轮询、路由级错误、目录与层间依赖、组件骨架、Zod 校验、状态语义、逻辑抽离 | 43 |
+| `nextjs-conventions` | Next.js App Router + React 19 + TS | RSC 边界、Next 15 异步 API、`use()` 读取与 SWR 轮询、路由级错误、目录与层间依赖、组件骨架、Zod 校验、状态语义、逻辑抽离、代码格式 | 45 |
 | `react-conventions` | React 19 + TS + Vite（无 Next.js） | 状态语义、异步动作、错误处理、目录与边界、命名、逻辑抽离、React 19 边界 | 22 |
 | `nestjs-best-practices` | NestJS | 待写 | — |
 
@@ -77,9 +77,9 @@ standards/
     │   └── rules/
     │       ├── _sections.md   分节定义（顺序 / 影响等级 / 文件名前缀）
     │       ├── _template.md   单条规则的骨架
-    │       └── <prefix>-<slug>.md   43 条规则
+    │       └── <prefix>-<slug>.md   45 条规则
     ├── react-conventions/
-    │   └── ...            同上，22 条规则
+    │   └── ...            同上，23 条规则
     └── nestjs-best-practices/
         └── (待写)
 ```
@@ -105,6 +105,12 @@ standards/
 - **Capability**（没它就会错）—— 必须写。版本特有的坑、文档没写的默认行为、训练数据之外的边界。
 - **Efficiency**（能做对但做不好）—— 要克制。只是「更优的写法」不值得占篇幅。
 
+**格式归工具，语义归规范。** 判据：**这条能不能被 `--fix` 自动修好？**
+能（引号、分号、尾逗号、缩进）→ 不写进规范，交给 ESLint / Prettier，写进去只会与项目配置打架。
+不能（导入分组顺序、命名、目录归属、错误位置）→ 才是规范该管的。
+`format-import-order` 就是后者：`import-x/first` / `newline-after-import` 管不到分组顺序，
+`import-x/order` 默认不开，只能靠约定。
+
 **内容必须来自真实项目。** 不写通用最佳实践的复述 —— 那部分模型本来就会。
 只写从实际踩坑里长出来、模型默认不会那么写的东西。
 
@@ -119,12 +125,12 @@ standards/
 
 ## 当前状态
 
-**`react-conventions` 已成型**（22 条 / 7 分节），**尚未在真实生成任务里验证过**。
+**`react-conventions` 已成型**（23 条 / 8 分节），**尚未在真实生成任务里验证过**。
 `DECISIONS.md` 里有 16 条待拍板，其中 D9 / D12 / D14 已先行落进
 `naming-language` / `naming-interface-vs-type` / `layout-env-single-source` 三条规则 ——
 **这三条还没经你确认**。
 
-**`nextjs-conventions` 已成型**（43 条 / 12 分节）。
+**`nextjs-conventions` 已成型**（45 条 / 13 分节）。
 已做过一次**对照实验**（同一任务，带 skill vs 不带 skill 各跑一遍），
 暴露出并已修掉：Hook 文件名写反（camelCase → kebab-case，与两个真实项目对齐）、
 目录树缺 `lib/services/` 与 `server/actions/`、缺「轮询用 SWR」与「mounted 门控」两条规则。

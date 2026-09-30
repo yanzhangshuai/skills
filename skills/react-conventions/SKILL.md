@@ -9,7 +9,7 @@ metadata:
 
 # React 项目约定
 
-React 19 + TypeScript + Vite 项目的**架构与可读性**规范。22 条规则，7 个分节，按影响等级排序。
+React 19 + TypeScript + Vite 项目的**架构与可读性**规范。23 条规则，8 个分节，按影响等级排序。
 
 > **和 Vercel 那份的分工**：`vercel-labs/agent-skills` 的 `react-best-practices` 管**性能**
 > （async 瀑布、bundle 体积、rerender、js 微优化），且强绑定 Next.js。
@@ -37,6 +37,7 @@ React 19 + TypeScript + Vite 项目的**架构与可读性**规范。22 条规�
 | 5 | 命名 | HIGH | `naming-` | 3 |
 | 6 | 逻辑抽离 | MEDIUM | `extract-` | 3 |
 | 7 | React 19 边界 | MEDIUM | `react19-` | 2 |
+| 8 | 代码格式 | MEDIUM | `format-` | 1 |
 
 ## Quick Reference
 
@@ -83,6 +84,10 @@ React 19 + TypeScript + Vite 项目的**架构与可读性**规范。22 条规�
 - `react19-use-not-for-actions` — `use()` 是读取原语，不能替代动作 hook
 - `react19-use-cached-promise` — `use(promise)` 的 promise 必须在渲染外创建并缓存
 
+### 8. 代码格式（MEDIUM）
+
+- `format-import-order` — 导入分三组（外部 → `@/` → 相对），组内按字母序；类型导入标 `type`
+
 ## 工作流
 
 生成新项目时按这个顺序走：
@@ -93,6 +98,7 @@ React 19 + TypeScript + Vite 项目的**架构与可读性**规范。22 条规�
 4. **异步一律走外壳** —— 按 `action-*` 建 `useAsyncAction`，不要每个动作手写一遍。
 5. **错误就地显示** —— 按 `error-*`，不要交给 Error Boundary。
 6. **最后才谈性能** —— 核心行为验证通过之前，不要动 memo / useMemo / 虚拟列表。
+7. **收尾排导入** —— 按 `format-import-order`：外部 → `@/` → 相对，组内字母序，类型标 `type`。
 
 **收尾自检**（逐条对）：
 
@@ -103,6 +109,7 @@ React 19 + TypeScript + Vite 项目的**架构与可读性**规范。22 条规�
 - [ ] 组件 / 页面里没有直接 `fetch`
 - [ ] 文件名大小写符合约定，两处别名配置一致
 - [ ] 没有用 `use()` 替代动作 hook
+- [ ] 导入分了三组、组内按字母序，类型导入标了 `type`
 
 ## How to Use
 

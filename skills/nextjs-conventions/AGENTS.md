@@ -3,7 +3,7 @@
 > ⚠️ 本文件由 `tools/build-agents.mjs` 从 `rules/` 自动生成 —— **不要手改**。
 > 改 `rules/<file>.md` 之后重新生成：`node tools/build-agents.mjs`
 
-Next.js App Router + React 19 + TypeScript 项目的架构与可读性规范，面向 AI agent。含 43 条规则、12 个分节，按影响等级从 critical（状态语义、异步动作、错误处理、RSC 边界、数据读取）到 incremental（逻辑抽离、样式与布局、重渲染）排序。每条规则给出反例与正例对照。内容来自 wen-yuan 项目的真实沉淀（.trellis/spec）与 TodoSystem 的踩坑记录，不是通用最佳实践的复述。与 Vercel 的 vercel-react-best-practices（性能）和 vercel-next-best-practices（文件约定）互补：那两份管性能与 API 用法，这份管项目结构、命名、状态语义、错误位置与组件骨架。
+Next.js App Router + React 19 + TypeScript 项目的架构与可读性规范，面向 AI agent。含 45 条规则、13 个分节，按影响等级从 critical（状态语义、异步动作、错误处理、RSC 边界、数据读取）到 incremental（逻辑抽离、样式与布局、重渲染、代码格式）排序。每条规则给出反例与正例对照。内容来自 wen-yuan 项目的真实沉淀（.trellis/spec）与 TodoSystem 的踩坑记录，不是通用最佳实践的复述。与 Vercel 的 vercel-react-best-practices（性能）和 vercel-next-best-practices（文件约定）互补：那两份管性能与 API 用法，这份管项目结构、命名、状态语义、错误位置与组件骨架。
 
 ## 目录
 
@@ -73,6 +73,10 @@ Next.js App Router + React 19 + TypeScript 项目的架构与可读性规范，�
 12. **重渲染**（MEDIUM）
    - 12.1 依赖数组长度恒定
    - 12.2 高频交互禁止 no-op 状态写入
+
+13. **代码格式**（MEDIUM）
+   - 13.1 格式由工具决定，不靠记忆
+   - 13.2 导入分四组，组间空行
 
 ---
 
@@ -2649,6 +2653,105 @@ function handleBackgroundClick() {
 
 Reference: [React: useState 的函数式更新](https://react.dev/reference/react/useState#setstate-parameters)、
 [React: 状态是一份快照](https://react.dev/learn/state-as-a-snapshot)
+
+---
+
+## 13. 代码格式
+
+**影响：MEDIUM**
+
+格式（引号、分号、尾逗号）本就该由 ESLint / Prettier 决定，写进规范只会与
+
+### 13.1 格式由工具决定，不靠记忆
+
+**影响：MEDIUM** — 避免手写风格与项目 lint 配置打架，产出一次过
+
+**引号、分号、尾逗号、缩进、行宽是工具的事，不是规范的事。**
+判据：**它能不能被 `--fix` 自动修好？** 能，就不该写进规范让人记。
+
+新项目按项目自己的 ESLint / Prettier 配置写。下面是本项目实际强制的值
+（`eslint.config.mjs` 的 `@stylistic` 段）—— 照它写可以一次过 lint：
+
+| 项 | 值 | 规则 |
+|---|---|---|
+| 引号 | **双引号** | `@stylistic/quotes: ["error", "double"]` |
+| 分号 | **必须有** | `@stylistic/semi: ["error", "always"]` |
+| 尾逗号 | **禁止** | `@stylistic/comma-dangle: ["error", "never"]` |
+| 对象花括号内空格 | **有** | `@stylistic/object-curly-spacing: ["error", "always"]` |
+| JSX 属性引号 | **双引号** | `@stylistic/jsx-quotes: ["error", "prefer-double"]` |
+| 类型导入 | 用 `type` 标注 | `@typescript-eslint/consistent-type-imports` |
+
+```ts
+// ❌ 单引号 + 无分号
+import { useState } from 'react'
+const config = { a: 1 }
+
+// ✅ 双引号 + 分号
+import { useState } from "react";
+const config = { a: 1 };
+```
+
+⚠️ **本技能里的代码示例是紧凑写法**（省分号、用单引号），
+目的是让规则本身好读 —— **不要照抄示例的标点**，以项目 formatter 的输出为准。
+提交前跑一次：
+
+```bash
+pnpm lint:fix
+```
+
+**反过来也要注意：格式之外的东西别推给工具。** 导入的**分组顺序**（见 `format-import-order`）
+是语义约定，`--fix` 修不了 —— 没开 `import-x/order` 的话只能靠人守。
+同理，命名、目录归属、错误位置这些「工具查不出来的」，才是规范该管的。
+
+Reference: [ESLint Stylistic](https://eslint.style/rules)
+
+### 13.2 导入分四组，组间空行
+
+**影响：MEDIUM** — 依赖方向一眼可读，diff 不因导入顺序反复冲突
+
+顺序固定，**组内不强制字母序**：
+
+```ts
+// 1. Node 内置
+import path from "node:path";
+
+// 2. 外部包
+import { z } from "zod";
+import { useQuery } from "@tanstack/react-query";
+
+// 3. 内部模块（@/ 别名）
+import { ApiResponse } from "@/types/api";
+import { parseAiOutput } from "@/lib/ai-parser";
+
+// 4. 相对路径
+import { formatDate } from "./utils";
+```
+
+**为什么顺序要固定**：它把「依赖方向」写进了文件头部 ——
+从第 1 组读到第 4 组，就是「从最外层依赖读到最内层」。
+顺序一乱，读者得先解析整个 import 区才能判断这个文件往外伸了多远。
+
+**类型专用导入必须标 `type`：**
+
+```ts
+// ✅ 整个导入都是类型
+import type { Character } from "@/types/analysis";
+
+// ✅ 混合导入用行内 type
+import { parseAiOutput, type Character } from "@/lib/ai-parser";
+
+// ❌ 类型混在里面不标注
+import { Character, parseAiOutput } from "@/types/analysis";
+```
+
+不标 `type` 的后果不只是风格：打包器无法确定这个导入只用于类型，
+可能把整个模块保留进产物。
+
+**这条工具兜不住。** `import-x/first` 只管「import 在文件最前」、
+`newline-after-import` 只管空行、`no-duplicates` 只管重复导入；
+**分组顺序需要 `import-x/order`**，没开这条就只能靠约定。
+
+Reference: [eslint-plugin-import-x](https://github.com/un-ts/eslint-plugin-import-x)
 
 ---
 
