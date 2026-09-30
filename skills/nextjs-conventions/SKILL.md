@@ -1,6 +1,6 @@
 ---
 name: nextjs-conventions
-description: MUST be used when generating or reviewing Next.js App Router + React 19 + TypeScript project code. Covers RSC 边界与 "use client" 传染、Next 15 异步 API（params / searchParams / cookies / headers）、渲染期读取用 use()、路由级 error.tsx 与 unstable_rethrow、目录与层间依赖、组件骨架（Props interface / 语义化 className / 可访问性）、外部输入 Zod 校验、异步状态语义（loading / pending）、异步动作统一外壳、逻辑抽离。Load for any .tsx / .ts work under src/app、新建页面或路由、Server / Client Component 划分、数据读取、表单与错误处理。Complements Vercel's vercel-react-best-practices (performance) and vercel-next-best-practices (file conventions) — this skill covers project structure, naming, state semantics, error placement and component skeleton.
+description: MUST be used when generating or reviewing Next.js App Router + React 19 + TypeScript project code. Covers RSC 边界与 "use client" 传染、Next 15 异步 API（params / searchParams / cookies / headers）、渲染期读取用 use()、路由级 error.tsx 与 unstable_rethrow、目录与层间依赖、组件骨架（Props interface / 语义化 className / 可访问性）、外部输入 Zod 校验、异步状态语义（loading / pending）、异步动作统一外壳、逻辑抽离。Load for any .tsx / .ts work under src/app、新建页面或路由、Server / Client Component 划分、数据读取、表单与错误处理。Do NOT load for plain React 19 + Vite projects without Next.js — use the react-conventions skill instead. Complements Vercel's vercel-react-best-practices (performance) and vercel-next-best-practices (file conventions) — this skill covers project structure, naming, state semantics, error placement and component skeleton.
 license: MIT
 metadata:
   author: yanzhangshuai
