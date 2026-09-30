@@ -1,0 +1,15 @@
+{
+  "version": "0.1.0",
+  "organization": "yanzhangshuai",
+  "date": "2026 年 9 月",
+  "abstract": "React 19 + TypeScript + Vite 项目的架构与可读性规范，面向 AI agent。含 22 条规则、7 个分节，按影响等级从 critical（状态语义、异步动作、错误处理）到 incremental（逻辑抽离、React 19 边界）排序。每条规则给出反例与正例对照。内容来自 TodoSystem.WebClient 的真实沉淀，不是通用最佳实践的复述。与 Vercel 的 react-best-practices 互补：那份管性能，这份管结构与可读性，零重叠。",
+  "references": [
+    "https://react.dev/reference/react/use",
+    "https://react.dev/reference/react/useActionState",
+    "https://react.dev/reference/react-dom/hooks/useFormStatus",
+    "https://react.dev/reference/react/useTransition",
+    "https://react.dev/learn/you-might-not-need-an-effect",
+    "https://vite.dev/config/shared-options.html#resolve-alias",
+    "https://www.typescriptlang.org/tsconfig#paths"
+  ]
+}
