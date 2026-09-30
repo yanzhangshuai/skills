@@ -1,0 +1,23 @@
+{
+  "title": "Next.js 项目约定",
+  "version": "0.1.0",
+  "organization": "yanzhangshuai",
+  "date": "2026 年 9 月",
+  "abstract": "Next.js App Router + React 19 + TypeScript 项目的架构与可读性规范，面向 AI agent。含 41 条规则、12 个分节，按影响等级从 critical（状态语义、异步动作、错误处理、RSC 边界、数据读取）到 incremental（逻辑抽离、样式与布局、重渲染）排序。每条规则给出反例与正例对照。内容来自 wen-yuan 项目的真实沉淀（.trellis/spec）与 TodoSystem 的踩坑记录，不是通用最佳实践的复述。与 Vercel 的 vercel-react-best-practices（性能）和 vercel-next-best-practices（文件约定）互补：那两份管性能与 API 用法，这份管项目结构、命名、状态语义、错误位置与组件骨架。",
+  "references": [
+    "https://nextjs.org/docs/app/building-your-application/routing",
+    "https://nextjs.org/docs/app/building-your-application/rendering/server-components",
+    "https://nextjs.org/docs/app/api-reference/file-conventions/error",
+    "https://nextjs.org/docs/app/api-reference/functions/cookies",
+    "https://nextjs.org/docs/app/api-reference/functions/unstable_rethrow",
+    "https://react.dev/reference/react/use",
+    "https://react.dev/reference/react/useActionState",
+    "https://react.dev/learn/you-might-not-need-an-effect",
+    "https://react.dev/learn/reusing-logic-with-custom-hooks",
+    "https://react.dev/reference/react/useMemo",
+    "https://react.dev/learn/state-as-a-snapshot",
+    "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Destructuring",
+    "https://zod.dev",
+    "https://www.typescriptlang.org/tsconfig#paths"
+  ]
+}

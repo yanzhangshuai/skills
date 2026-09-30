@@ -7,6 +7,7 @@
 //   node tools/build-agents.mjs <skillDir> <outFile>  # 指定输出文件
 //
 // 规则文件格式见 rules/_template.md，分节定义见 rules/_sections.md。
+// 标题与摘要取自 metadata.json 的 title / abstract / references。
 // 只依赖 node 内置模块，无第三方依赖。
 
 import { readFileSync, writeFileSync, readdirSync } from 'node:fs'
@@ -77,7 +78,7 @@ for (const r of rules) {
 for (const list of byPrefix.values()) list.sort(byOrder)
 
 const out = []
-out.push('# React 项目约定')
+out.push(`# ${meta.title ?? '项目约定'}`)
 out.push('')
 out.push('> ⚠️ 本文件由 `tools/build-agents.mjs` 从 `rules/` 自动生成 —— **不要手改**。')
 out.push('> 改 `rules/<file>.md` 之后重新生成：`node tools/build-agents.mjs`')
