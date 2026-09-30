@@ -1,6 +1,6 @@
 ---
 name: nextjs-conventions
-description: MUST be used when generating or reviewing Next.js App Router + React 19 + TypeScript project code. Covers RSC 边界与 "use client" 传染、Next 15 异步 API（params / searchParams / cookies / headers）、渲染期读取用 use()、Cache Components 缓存（use cache / cacheLife / cacheTag / updateTag）、路由级 error.tsx 与 unstable_rethrow、Server Action 与 Route Handler 的分工、目录与层间依赖、组件骨架（Props interface / 语义化 className / 可访问性）、外部输入 Zod 校验、命名与缩写尺度、异步状态语义（loading / pending）、异步动作统一外壳、逻辑抽离、公开接口注释。Load for any .tsx / .ts work under src/app、新建页面或路由、Server / Client Component 划分、数据读取与缓存、表单与错误处理。Do NOT load for plain React 19 + Vite projects without Next.js — use the react-conventions skill instead. Complements Vercel's vercel-react-best-practices (performance) and vercel-next-best-practices (file conventions) — this skill covers project structure, naming, state semantics, error placement and component skeleton.
+description: MUST be used when generating or reviewing Next.js App Router + React 19 + TypeScript project code. Covers RSC 边界与 "use client" 传染、Next 15 异步 API（params / searchParams / cookies / headers）、渲染期读取用 use()、Cache Components 缓存（use cache / cacheLife / cacheTag / updateTag）、路由级 error.tsx 与 unstable_rethrow、Server Action 与 Route Handler 的分工、目录与层间依赖、组件骨架（Props interface / 语义化 className / 可访问性）、外部输入 Zod 校验、命名与缩写尺度、异步状态语义（loading / pending）、异步动作统一外壳、逻辑抽离、公开接口注释。Load for any .tsx / .ts work under src/app、新建页面或路由、Server / Client Component 划分、数据读取与缓存、表单与错误处理。Do NOT load for plain React 19 + Vite projects without Next.js — use the vite-react-conventions skill instead. Complements Vercel's vercel-react-best-practices (performance) and vercel-next-best-practices (file conventions) — this skill covers project structure, naming, state semantics, error placement and component skeleton.
 license: MIT
 metadata:
   author: yanzhangshuai
@@ -20,7 +20,7 @@ Next.js App Router + React 19 + TypeScript 项目的**架构与可读性**规范
 > | `vercel-next-best-practices` | Next.js 文件约定与 API 用法 |
 > | **本技能** | 项目结构、命名、状态语义、错误位置、组件骨架、类型校验 |
 >
-> 另有一份 `react-conventions` 面向 **React 19 + Vite（无 Next.js）** ——
+> 另有一份 `vite-react-conventions` 面向 **React 19 + Vite（无 Next.js）** ——
 > 栈无关的规则两份措辞一致，栈相关的部分各写各的。
 > **两份永久分开**：一个项目要么是 Next.js、要么是 Vite + React，不会两者都是。
 

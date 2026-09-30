@@ -1,4 +1,4 @@
-# React 项目约定
+# Vite + React 项目约定
 
 > ⚠️ 本文件由 `tools/build-agents.mjs` 从 `rules/` 自动生成 —— **不要手改**。
 > 改 `rules/<file>.md` 之后重新生成：`node tools/build-agents.mjs`

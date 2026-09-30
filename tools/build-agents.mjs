@@ -2,7 +2,7 @@
 // 把 skills/<name>/rules/ 编译成一份 AGENTS.md（供原生读 AGENTS.md 的工具使用）。
 //
 // 用法：
-//   node tools/build-agents.mjs                       # 默认编译 react-conventions
+//   node tools/build-agents.mjs                       # 默认编译 vite-react-conventions
 //   node tools/build-agents.mjs <skillDir>            # 编译指定技能目录
 //   node tools/build-agents.mjs <skillDir> <outFile>  # 指定输出文件
 //
@@ -16,7 +16,7 @@ import { fileURLToPath } from 'node:url'
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const [argDir, argOut] = process.argv.slice(2)
-const skillDir = argDir ? resolve(argDir) : join(repoRoot, 'skills', 'react-conventions')
+const skillDir = argDir ? resolve(argDir) : join(repoRoot, 'skills', 'vite-react-conventions')
 const rulesDir = join(skillDir, 'rules')
 
 const read = (p) => readFileSync(p, 'utf8').replace(/\r\n/g, '\n')

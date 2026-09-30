@@ -1,6 +1,6 @@
 ---
-name: react-conventions
-description: MUST be used when generating or reviewing React 19 + TypeScript + Vite project code. Covers 目录分层与边界、文件与标识符命名（含缩写尺度）、异步状态语义（loading / pending）、异步动作统一外壳、错误就地显示、逻辑抽离时机、公开接口注释、React 19 use() 的适用边界。Load for any .tsx / .ts work involving 新建页面、组件、hook、目录组织、状态命名、错误处理。Do NOT load for Next.js App Router projects — use the nextjs-conventions skill instead. Complements Vercel's react-best-practices (performance only) — this skill covers architecture and readability, with zero overlap.
+name: vite-react-conventions
+description: MUST be used when generating or reviewing React 19 + TypeScript + Vite project code (a Vite + React SPA — no Next.js). Covers 目录分层与边界、文件与标识符命名（含缩写尺度）、异步状态语义（loading / pending）、异步动作统一外壳、错误就地显示、逻辑抽离时机、公开接口注释、React 19 use() 的适用边界。Load for any .tsx / .ts work involving 新建页面、组件、hook、目录组织、状态命名、错误处理。Do NOT load for Next.js App Router projects — use the nextjs-conventions skill instead. Complements Vercel's react-best-practices (performance only) — this skill covers architecture and readability, with zero overlap.
 license: MIT
 metadata:
   author: yanzhangshuai

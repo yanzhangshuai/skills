@@ -1,178 +1,189 @@
-# standards
+# skills
 
-NestJS 与前端（React / Next.js）的代码规范，以 **agent skill** 的形式提供。
+给 AI 用的**代码规范技能包**（agent skills）。
 
-目的只有一个：**让 AI 生成新项目时，按同一套约定写代码。**
-
-## 这是什么
+目的只有一个：**让 AI 生成新项目时，按同一套约定写代码** —— 产出规范、可读性强的代码，
+而不是每次重新发挥。
 
 不是给人看的文档，是给 AI 读的**指令集**。
 
-每个技能是一份 `SKILL.md`（工作流 + 索引）+ `rules/*.md`（单条规则）。
-AI 加载 `SKILL.md` 后按它的步骤走，需要细节时再去读对应的规则文件。
+| 技能 | 适用项目 | 规则数 | 分节 |
+|---|---|---|---|
+| [`nextjs-conventions`](skills/nextjs-conventions/) | Next.js App Router + React 19 + TypeScript | 52 | 14 |
+| [`vite-react-conventions`](skills/vite-react-conventions/) | React 19 + TypeScript + Vite（**无 Next.js**） | 25 | 9 |
 
-结构参照 [vercel-labs/agent-skills](https://github.com/vercel-labs/agent-skills)：
-规则按**分节 + 影响等级**组织，每条规则是「一句话原理 + 反例 + 正例 + 依据」。
+> **两份永久分开**：一个项目要么是 Next.js、要么是 Vite + React，不会两者都是。
+> 栈无关的规则（状态语义、异步动作、错误位置、命名、导入分组、注释）两份**共享 16 条**、措辞一致；
+> 栈相关的部分各写各的。**同一个项目只装其中一份。**
+>
+> 后续会继续加（`nestjs-conventions` 等）。
 
-## 怎么用
+---
 
-技能是**自包含**的 —— 把整个技能目录拷到目标机器的技能目录下就行，不依赖本仓位置。
+## 一键引用
+
+### 方式 1 · 把链接丢给 AI（什么都不用装）
+
+每个技能都有一份**全部规则的合订本** `AGENTS.md`。一个链接就是全部：
+
+```
+读取 https://raw.githubusercontent.com/yanzhangshuai/skill/main/skills/nextjs-conventions/AGENTS.md
+，然后严格按它写代码。
+```
+
+| 技能 | 合订本（复制即用） |
+|---|---|
+| `nextjs-conventions` | `https://raw.githubusercontent.com/yanzhangshuai/skill/main/skills/nextjs-conventions/AGENTS.md` |
+| `vite-react-conventions` | `https://raw.githubusercontent.com/yanzhangshuai/skill/main/skills/vite-react-conventions/AGENTS.md` |
+
+想省 token 就给 `SKILL.md`（`.../skills/<名字>/SKILL.md`）：AI 先读它的索引与工作流，
+需要细节时再按需拉 `rules/*.md`。
+
+### 方式 2 · 社区 skills CLI（支持 75+ agent）
 
 ```bash
-# WorkBuddy（Linux / macOS / WSL / Git Bash）
-cp -r <本仓>/skills/react-conventions ~/.workbuddy-ai/skills/
-cp -r <本仓>/skills/nextjs-conventions ~/.workbuddy-ai/skills/
+npx skills add yanzhangshuai/skill --list                           # 先看有哪些技能
+npx skills add yanzhangshuai/skill --skill nextjs-conventions -g    # 装到用户目录，跨项目可用
+npx skills add yanzhangshuai/skill --skill vite-react-conventions -g
+```
+
+不加 `-g` 就装到当前项目的 `<agent>/skills/`，随项目提交、与团队共享。
+也可以直接指定仓内路径：`npx skills add https://github.com/yanzhangshuai/skill/tree/main/skills/nextjs-conventions`。
+
+### 方式 3 · WorkBuddy
+
+WorkBuddy 的技能目录是 `~/.workbuddy-ai/skills/`，社区 CLI 的目标列表里没有它，所以直接拷：
+
+```bash
+git clone --depth 1 https://github.com/yanzhangshuai/skill.git /tmp/skill
+cp -r /tmp/skill/skills/nextjs-conventions ~/.workbuddy-ai/skills/
 ```
 
 ```powershell
-# 纯 Windows
-Copy-Item -Recurse <本仓>\skills\react-conventions $env:USERPROFILE\.workbuddy-ai\skills\
-Copy-Item -Recurse <本仓>\skills\nextjs-conventions $env:USERPROFILE\.workbuddy-ai\skills\
+git clone --depth 1 https://github.com/yanzhangshuai/skill.git $env:TEMP\skill
+Copy-Item -Recurse $env:TEMP\skill\skills\nextjs-conventions $env:USERPROFILE\.workbuddy-ai\skills\
 ```
 
-也可以用社区的标准 CLI（支持 75+ agent，自动认 `skills/<name>/SKILL.md` 布局）：
-
-```bash
-npx skills add <本仓>              # 装全部技能
-npx skills add <本仓> -g           # 装到用户目录（跨项目可用）
-```
-
-Claude Code 用 `~/.claude/skills/`，Cursor / Codex 项目级用 `.agents/skills/`。
+Claude Code 用 `~/.claude/skills/`，Cursor / Codex 项目级用 `.agents/skills/`，其余见 CLI 的 `--agent` 列表。
 
 > 💡 **触发更可靠的做法**：prompt 里显式带上技能名，例如
 > 「用 nextjs-conventions，建一个图书管理页面」。
 
-## 可用技能
+---
 
-| 技能 | 适用 | 覆盖 | 条数 |
-|---|---|---|---|
-| `nextjs-conventions` | Next.js App Router + React 19 + TS | RSC 边界、Next 15 异步 API、`use()` 读取与 SWR 轮询、Cache Components 缓存、路由级错误、Server Action / Route Handler 分工、目录与层间依赖、组件骨架、Zod 校验、命名与缩写尺度、状态语义、逻辑抽离、代码格式、公开接口注释 | 52 |
-| `react-conventions` | React 19 + TS + Vite（无 Next.js） | 状态语义、异步动作、错误处理、目录与边界、命名与缩写尺度、逻辑抽离、React 19 边界、代码格式、公开接口注释 | 25 |
-| `nestjs-best-practices` | NestJS | 待写 | — |
-
-> **两份 React 技能的分工**（实测）：**共享 16 条**（状态语义、异步动作、错误位置、命名、
-> 导入分组、注释、抽离门槛），两份措辞一致；Next.js 那份另有 **35 条**专属（RSC 边界、
-> Next 15 异步请求 API、Cache Components 缓存、路由级 `error.tsx`、组件骨架、类型校验、
-> 样式与重渲染），Vite 那份另有 **9 条**专属（固定 `src/` 分层、组件按域分目录、
-> 禁止在组件里 `fetch`、环境变量单一来源等）。
-> **同一项目只装其中一份**，别两份都装。
->
-> **这不是过渡方案，是最终形态**：一个项目要么是 Next.js、要么是 Vite + React，
-> 不会两者都是。所以两份**永久分开、互不依赖**，`description` 里的互相排他句是设计的一部分。
-
-> **和 Vercel 的技能不冲突，应当叠加使用。**
-> `vercel-react-best-practices` 管**性能**（async 瀑布、bundle 体积、rerender、js 微优化），
-> `vercel-next-best-practices` 管 **Next.js 文件约定与 API 用法**，
-> 本仓管**项目结构、命名、状态语义、错误位置、组件骨架**。
-> 实测与前者**零重叠**（那份 70 条全是性能且强绑 Next.js）。
-
-## 结构
+## 目录结构
 
 ```
-standards/
-├── README.md          本文件
-├── DECISIONS.md       待裁决清单（内部工作稿，不是技能的一部分）
+skills/                            ← 仓库根
+├── LICENSE
+├── README.md                      本文件
+├── DECISIONS.md                   待裁决清单（内部工作稿，不是技能的一部分）
 ├── tools/
-│   └── build-agents.mjs   把 rules/ 编译成 AGENTS.md
+│   ├── build-agents.mjs           把 rules/ 编译成 AGENTS.md
+│   └── check-skills.mjs           一致性自检（7 项）
 └── skills/
     ├── nextjs-conventions/
-    │   ├── SKILL.md       入口：工作流 + 优先级表 + 快速索引
-    │   ├── AGENTS.md      全量合订本（由脚本生成，不要手改）
-    │   ├── metadata.json  标题 / 摘要 / 依据链接
+    │   ├── SKILL.md               入口：工作流 + 优先级表 + 快速索引
+    │   ├── AGENTS.md              全量合订本（脚本生成，不要手改）
+    │   ├── metadata.json          标题 / 摘要 / 依据链接
     │   └── rules/
-    │       ├── _sections.md   分节定义（顺序 / 影响等级 / 文件名前缀）
-    │       ├── _template.md   单条规则的骨架
-    │       └── <prefix>-<slug>.md   52 条规则
-    ├── react-conventions/
-    │   └── ...            同上，25 条规则
-    └── nestjs-best-practices/
-        └── (待写)
+    │       ├── _sections.md       分节定义（顺序 / 影响等级 / 文件名前缀）
+    │       ├── _template.md       单条规则的骨架
+    │       └── <prefix>-<slug>.md 52 条规则
+    └── vite-react-conventions/
+        └── ...                    同上，25 条规则
 ```
 
-**改规则的正确姿势**：改 `rules/<file>.md` → 跑 `node tools/build-agents.mjs skills/<技能名>`
-重新生成 `AGENTS.md`。**不要直接改 `AGENTS.md`**，它会被下一次编译覆盖。
+`skills/<名字>/SKILL.md` 是社区标准布局，`npx skills add` 直接认。
 
-改完再跑一次自检：
+## 一个技能长什么样
+
+`SKILL.md` 是入口（**索引式**）：优先级表 + 快速索引 + 生成新项目的工作流 + 收尾自检清单。
+每条规则单独一个文件，固定四段：
+
+```markdown
+## 规则标题
+
+一句话原理 —— 写清**不这样做会出什么事**，而不是「这样更好」。
+
+**Incorrect（说明这段错在哪）：** 反例代码
+
+**Correct（说明这段对在哪）：** 正例代码
+
+Reference: [依据的官方文档或源码](https://…)
+```
+
+规则按**分节 + 影响等级**组织（CRITICAL / HIGH / MEDIUM），**顺序即优先级** ——
+AI 拿不准先守哪条时按编号走。
+
+## 加一个新技能
+
+1. `mkdir -p skills/<新技能名>/rules`，照现有技能拷一份 `_sections.md` / `_template.md` 改。
+2. 写 `SKILL.md`（frontmatter 必须有 `name` / `description`）和 `metadata.json`（必须有 `title`）。
+3. `rules/` 里每条规则一个文件，**文件名前缀必须是 `_sections.md` 里声明过的分节前缀**。
+4. 编译 + 自检：
 
 ```bash
-node tools/check-skills.mjs        # 无参数 = 检查本仓全部技能
+node tools/build-agents.mjs skills/<新技能名>
+node tools/check-skills.mjs
 ```
 
-它查 7 件事：每个文件前缀有对应分节、frontmatter 五个字段齐全、每条规则都有 Reference 链接、
-`SKILL.md` 索引覆盖全部规则（无悬空也无遗漏）、`SKILL.md` 与 `metadata.json` 声明的
-条数 / 分节数与实际一致、`AGENTS.md` 含全部规则标题且分节顺序正确、
-**`Correct` 示例里没有非空断言**（与 `type-no-escape-hatches` 冲突的那类错误 ——
-人工看会漏，脚本抓得到）。
+**`rules/` 是唯一真源。** `SKILL.md` 的索引、`AGENTS.md` 的合订本都从它派生 ——
+不要手改 `AGENTS.md`，它会被下一次编译覆盖。
+
+`check-skills.mjs` 查 7 件事：文件前缀有对应分节 / frontmatter 五字段齐全 /
+每条规则都有 Reference 链接 / `SKILL.md` 索引覆盖全部规则（无悬空也无遗漏）/
+`SKILL.md` 与 `metadata.json` 声明的条数与分节数一致 /
+`AGENTS.md` 含全部规则标题且分节顺序正确 /
+**`Correct` 示例里没有非空断言**（与 `type-no-escape-hatches` 冲突的那类错误，人工逐条看必漏）。
 
 ## 设计要点
-
-**`rules/` 是唯一真源。** `SKILL.md` 的索引、`AGENTS.md` 的合订本都从它派生，
-避免三处内容各说各话。
-
-**影响等级是硬要求。** 每条规则必须写 `impact`（CRITICAL / HIGH / MEDIUM）
-和 `impactDescription`。这逼作者回答「这条到底多重要」，
-也让 AI 知道拿不准时先守哪条。
-
-**`order` 决定同节内的先后。** 文件名前缀决定它属于哪一节，`order` 决定这一节里先讲哪条 ——
-不写就按标题排，那样会把「统一外壳」排到「暴露 setError」后面，读起来是断的。
 
 **每条规则要能改变行为。** 写之前先问：不加这条，模型会不会写错？
 本来就会写对的规则只是噪声。
 
-- **Capability**（没它就会错）—— 必须写。版本特有的坑、文档没写的默认行为、训练数据之外的边界。
-- **Efficiency**（能做对但做不好）—— 要克制。只是「更优的写法」不值得占篇幅。
+- **Capability**（没它 AI 就做不到）—— 必须写。版本特有的坑、文档没写的默认行为、训练数据之外的边界。
+- **Efficiency**（能做对但做不好）—— 要克制。
 
 **格式归工具，语义归规范。** 判据：**这条能不能被 `--fix` 自动修好？**
 能（引号、分号、尾逗号、缩进）→ 不写进规范，交给 ESLint / Prettier，写进去只会与项目配置打架。
 不能（导入分组顺序、命名、目录归属、错误位置）→ 才是规范该管的。
-`format-import-order` 就是后者：`import-x/first` / `newline-after-import` 管不到分组顺序，
-`import-x/order` 默认不开，只能靠约定。
 
-**内容必须来自真实项目。** 不写通用最佳实践的复述 —— 那部分模型本来就会。
-只写从实际踩坑里长出来、模型默认不会那么写的东西。
+**内容来自真实项目。** 不写通用最佳实践的复述 —— 那部分模型本来就会。
 
-## 来源
+**验证方式是「带技能 vs 不带技能」跑同一个任务对比。** 只有让模型做到原本做不到的事的规则才值得留下。
 
-- `react-conventions` 的内容来自 `net/TodoSystem/TodoSystem.WebClient` 的**实际约定**。
-- `nextjs-conventions` 的内容来自 `wen-yuan/.trellis/spec` 的沉淀（该规范本身基于
-  [vercel-labs/next-best-practices](https://skills.sh/vercel-labs/next-skills/next-best-practices)
-  适配），以及 `TodoSystem` 与 wen-yuan 的踩坑记录。
-- 参考过的同类项目：`isheji/aippt-home`（Nuxt 3.6 + Vue 3 + Pinia）、
-  `web/presentation-ai`（Nuxt 4.2 + Tailwind 4 + Prisma）。
+## 验证情况
 
-## 当前状态
-
-**两份都已成型并做过两轮对照验证。** 当前规模：`react-conventions` 25 条 / 9 分节，
-`nextjs-conventions` 52 条 / 14 分节。
-
-**验证方式**（Vercel 方法论）：同一个任务起两个 subagent，一组读 `SKILL.md` 并严格遵守、
-另一组只要求「写高质量代码」，**并把两份技能临时移出 `~/.workbuddy-ai/skills/` 以排除自动加载的污染**。
+做过**两轮隔离对照实验**：同一任务起两个 subagent，一组读 `SKILL.md` 并严格遵守、
+另一组只要求「写高质量代码」；实验前把技能移出 agent 的技能目录，以排除自动加载的污染。
 
 | 轮次 | 任务 | 带技能 | 纯基线 |
 |---|---|---|---|
 | 1 | Next.js 图书管理模块 | 29 文件，引用 40 条规则名 | 24 文件，0 条规则名 |
 | 2 | Vite + React 学生名单 | 26 文件，引用 24 条规则名 | 29 文件，0 条规则名 |
 
-**最硬的一条证据**：两组基线**都把非组件文件写成了 camelCase / PascalCase**
-（`useStudents.ts`、`BooksView.tsx`），而两个带技能组都是 kebab-case（`use-students.ts`）——
-这正是上一轮修掉的那条写反的规则。目录树同理：带技能组完全吻合 `layout-app-tree` /
-`layout-fixed-src-tree`；基线组没有 `src/`、组件平铺、服务层混在 `lib/` 里。
+最硬的一条证据：两组基线**都把非组件文件写成 camelCase / PascalCase**
+（`useStudents.ts`、`BooksView.tsx`），带技能组都是 kebab-case（`use-students.ts`）；
+目录树同理，带技能组完全吻合规则里给的目录树。
 
-**本轮又修掉 6 个缺陷**（全部由 subagent 在 `NOTES.md` 里报出）：
+两轮实验共修掉 10 个缺陷，包括两个「**正例本身就是错的**」——
+服务端用模块级 `Map` 缓存 promise（模块作用域在服务端是进程级的，会跨请求、跨用户串数据）、
+以及 Server Action 靠抛异常传业务错误（生产环境会被框架清洗，用户只看到一句通用报错）。
 
-1. `data-render-reads-use` 的「模块级 `Map` 缓存」示例**是错的** —— 服务端模块作用域是进程级的，
-   会跨请求跨用户串数据。改用 React 的 `cache()`（作用域 = 单次请求）。
-2. 新增 `error-server-action-return-not-throw`：Server Action 抛出的错误在 **production 会被框架清洗**，
-   所以 `e instanceof ApiError` 拿不到 message，必须 `return` 结果对象。
-3. `rsc-server-action-separate-file` 与 `layout-module-direction` 原本**无解** ——
-   补上前提：`app/<段>/actions.ts` 只能被同一路由段的文件导入，否则挪到 `server/actions/`。
-4. `action-single-wrapper` 正文说「动作」、`SKILL.md` 自检项却写「所有异步动作」，口径不一致 —— 补上边界。
-5. `extract-triggers` 的 `useState > 2` 没说是谁的状态 —— 补上「只数本组件自己声明的」。
-6. `comment-public-api` / `component-props-interface` 各补一句
-   （未导出的 Props 不强制；空 interface 需要 lint 配置配合）。
+**尚未做第三轮验证**；52 条里还有约三分之一没被任务覆盖到。
 
-**仍未做**：第三轮验证；`DECISIONS.md` 的 16 条待拍板（其中 D9 / D12 / D14 已先行落进
-`naming-language` / `naming-interface-vs-type` / `layout-env-single-source` 三条规则，未经确认）。
+## 来源
 
-`nestjs-best-practices` 还是空的（需先侦察 `aixue/home/server`、`plovax/plovax-server`、
-`novel/pw-backend`；**不要**用 wen-yuan 的 `backend/`，那是 Next.js 服务端）。
+- `vite-react-conventions` 来自 `net/TodoSystem/TodoSystem.WebClient` 的**实际约定**。
+- `nextjs-conventions` 来自一份真实 Next.js 项目的内部 spec 沉淀（该 spec 本身基于
+  [vercel-labs/next-best-practices](https://skills.sh/vercel-labs/next-skills/next-best-practices) 适配）。
+- 结构参照 [vercel-labs/agent-skills](https://github.com/vercel-labs/agent-skills) 与
+  [vuejs-ai/skills](https://github.com/vuejs-ai/skills)。
+- 与 Vercel 的两份技能**不冲突，应当叠加使用**：`vercel-react-best-practices` 管**性能**、
+  `vercel-next-best-practices` 管**文件约定与 API 用法**，
+  本仓管**项目结构、命名、状态语义、错误位置、组件骨架**。
+
+## License
+
+[MIT](LICENSE)
