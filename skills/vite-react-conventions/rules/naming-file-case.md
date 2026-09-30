@@ -43,8 +43,10 @@ utils/
 >
 > 社区确实有两派：**kebab-case**（shadcn/ui 的 `use-mobile.ts`、Vercel 的 `vercel/ai`
 > 用 `use-chat.ts`）与 **camelCase**（TanStack Query 的 `useQuery.ts` —— 它走「文件名 =
-> 导出名」）。Next.js 官方对此**没有规定**，本项目跟 kebab-case 一派：
-> 目录里同时有组件、hook、工具函数，一条判据就能划清，不用先判断「是否只导出一个 hook」。
+> 导出名」）。框架官方对此**没有规定**。
+> **本项目取两者的混合：组件 PascalCase、其他 kebab-case** ——
+> 一条判据（「这个文件 `export` 的是不是组件」）就能划清，不用先判断「是否只导出一个 hook」。
+> 纯 kebab 派（shadcn）连组件文件也是 kebab，代价是文件名上看不出组件与非组件。
 >
 > **真正有强制力的是函数名** —— `eslint-plugin-react-hooks` 只认「函数名以 `use` 开头」，
 > 文件名写成什么都不影响 lint。所以这条纯属团队约定，**统一比选哪派更重要**。

@@ -38,7 +38,7 @@ const idx = items.findIndex(isDone)
 const btnRef = useRef<HTMLButtonElement>(null)
 
 // 上下文里已经有的词不要重复：函数名是 useBooks，变量就不必叫 bookList
-const { data, isLoading } = useBooks()
+const { data, loading } = useBooks()
 ```
 
 **两条硬边界：**
@@ -71,7 +71,7 @@ export function BookCard({ imageWidth, pageNumber }: BookCardProps) {
 }
 ```
 
-**也别反过来**：短不是目标，**信息量**才是。`isLoading` 不要缩成 `ld`、
+**也别反过来**：短不是目标，**信息量**才是。`loading` 不要缩成 `ld`、
 `handleSubmit` 不要缩成 `hs` —— 那已经不是缩写，是密码了。
 
 Reference: [MDN: JavaScript code style guide（命名）](https://developer.mozilla.org/en-US/docs/MDN/Writing_guidelines/Writing_style_guide/Code_style_guide/JavaScript)

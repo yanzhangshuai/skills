@@ -10,9 +10,9 @@ metadata:
 # Next.js 项目约定
 
 Next.js App Router + React 19 + TypeScript 项目的**架构与可读性**规范。
-54 条规则，14 个分节，按影响等级排序。
+57 条规则，14 个分节，按影响等级排序。
 
-> **和 Vercel 那两份的分工**（三份**零重叠**，应叠加使用）：
+> **和 Vercel 那两份的分工**（**基本不重叠**，应叠加使用）：
 >
 > | 技能 | 管什么 |
 > |---|---|
@@ -49,9 +49,9 @@ Next.js App Router + React 19 + TypeScript 项目的**架构与可读性**规范
 | 1 | 状态语义 | CRITICAL | `state-` | 2 |
 | 2 | 异步动作 | CRITICAL | `action-` | 3 |
 | 3 | 错误处理 | CRITICAL | `error-` | 5 |
-| 4 | RSC 边界 | CRITICAL | `rsc-` | 6 |
-| 5 | 数据读取 | CRITICAL | `data-` | 9 |
-| 6 | 目录与边界 | HIGH | `layout-` | 5 |
+| 4 | RSC 边界 | CRITICAL | `rsc-` | 7 |
+| 5 | 数据读取 | CRITICAL | `data-` | 10 |
+| 6 | 目录与边界 | HIGH | `layout-` | 6 |
 | 7 | 组件 | HIGH | `component-` | 6 |
 | 8 | 类型与校验 | HIGH | `type-` | 3 |
 | 9 | 命名 | HIGH | `naming-` | 5 |
@@ -90,6 +90,7 @@ Next.js App Router + React 19 + TypeScript 项目的**架构与可读性**规范
 - `rsc-server-action-separate-file` — Server Action 必须单独文件 + `"use server"`
 - `rsc-mounted-gate` — 浏览器本地状态影响渲染时必须 `mounted` 门控，否则水合不一致
 - `rsc-action-vs-route-handler` — 调用方在应用内用 Server Action，在外部（移动端 / webhook）才开 `route.ts`
+- `rsc-server-action-auth` — Server Action 是公开端点，必须自己校验身份与权限；**客户端藏菜单不算鉴权**
 
 ### 5. 数据读取（CRITICAL）
 
@@ -102,6 +103,7 @@ Next.js App Router + React 19 + TypeScript 项目的**架构与可读性**规范
 - `data-cache-components` — 先看 `cacheComponents` 开没开；用 `"use cache"` 不用 `unstable_cache`
 - `data-use-cache-runtime-api` — `use cache` 内不能读 `cookies()` / `headers()` / `searchParams`，提到外层当 props 传
 - `data-cache-invalidation` — 写后要立刻看到用 `updateTag`，能接受下次请求生效才用 `revalidateTag`
+- `data-route-loading` — 路由段加载态用 `loading.tsx`，段内慢数据用 `<Suspense>`，不要 `useState` 全屏 spinner
 
 ### 6. 目录与边界（HIGH）
 
@@ -110,12 +112,13 @@ Next.js App Router + React 19 + TypeScript 项目的**架构与可读性**规范
 - `layout-alias-sync` — `tsconfig.json` 的 `paths` 与打包器别名必须同步
 - `layout-module-direction` — 层间依赖单向，禁止循环依赖
 - `layout-env-single-source` — 环境变量走单一配置模块；`NEXT_PUBLIC_` 构建期内联，无前缀的客户端读是静默 `undefined`
+- `layout-provider-boundary` — provider 必须 `"use client"`，根 `layout.tsx` 不能加；`Toaster` 要挂一次
 
 ### 7. 组件（HIGH）
 
-- `component-props-interface` — 所有返回 JSX 的组件必须声明 `interface <ComponentName>Props`
+- `component-props-interface` — 有 props 的组件必须声明 `interface <ComponentName>Props`（没 props 不用声明空的）
 - `component-file-order` — 组件文件固定顺序：client 指令 → 外部依赖 → 内部模块 → Props → 常量 → 实现
-- `component-semantic-classname` — 根 DOM 必须有语义化 kebab-case className，禁用 `wrapper` / `container`
+- `component-semantic-classname` — 根 DOM 应该有语义化 kebab-case className，禁用 `wrapper` / `container`
 - `component-accessible-controls` — 图标控件给 `aria-label`，`button` 显式 `type`，用语义标签
 - `component-no-nested-interactive` — 禁止 `<a><button/></a>`，用 `asChild`
 - `component-async-confirm-dialog` — 异步确认必须 `preventDefault` + pending 禁用 + 失败保留弹框
@@ -178,14 +181,16 @@ Next.js App Router + React 19 + TypeScript 项目的**架构与可读性**规范
 **收尾自检**（逐条对）：
 
 - [ ] 每个 `"use client"` 都有真实的交互需求，且加在了最小的那个组件上
+- [ ] 根 `layout.tsx` **没有** `"use client"`；provider 包在单独的客户端壳里；`<Toaster />` 挂了一次
 - [ ] `params` / `searchParams` / `cookies()` / `headers()` 全部 `await` 了
 - [ ] 渲染期异步读取用 `use()`，没有 `useEffect + setState` 首屏拉数
+- [ ] 路由段有 `loading.tsx`；段内慢数据各自包了 `<Suspense>`，没有用 `useState` 造全屏 spinner
 - [ ] 轮询走 SWR `refreshInterval`，没有拿 `use()` 或手写 `setInterval` 当轮询
 - [ ] 用 `useSearchParams` / `usePathname` 的 Client 组件都被 `Suspense` 包裹
 - [ ] 主题 / localStorage 这类浏览器本地状态影响渲染的地方都有 `mounted` 门控
 - [ ] `lib/services/` 里不碰数据库，`server/**` 里不碰 React
-- [ ] 每个返回 JSX 的组件都有 `interface <ComponentName>Props`
-- [ ] 根 DOM 有语义化 className，没有 `wrapper` / `container`
+- [ ] 有 props 的组件都有 `interface <ComponentName>Props`（没 props 的不必声明空 interface）
+- [ ] 组件根 DOM 的 className 有语义化 token（或有 `data-testid` 等替代定位），没有 `wrapper` / `container`
 - [ ] 图标控件有 `aria-label`，`button` 有显式 `type`
 - [ ] 没有 `<a><button/></a>` 这类无效嵌套
 - [ ] 外部输入（AI 输出 / 请求体 / URL 参数）都过了 Zod
@@ -205,6 +210,7 @@ Next.js App Router + React 19 + TypeScript 项目的**架构与可读性**规范
       `use cache` 函数里没读 `cookies()` / `headers()` / `searchParams`
 - [ ] 写后要立刻反映的操作用了 `updateTag`；`cacheTag` 与失效时用的标签对得上
 - [ ] 没有为自家页面开无谓的 `route.ts`；有 `route.ts` 的话鉴权是第一步、输入过了校验
+- [ ] 每个 Server Action 都自己校验了**身份与权限**（没有只靠客户端藏按钮）；middleware 里没连数据库
 - [ ] 导出的函数 / 组件 / hook / 类型都有注释，写的是约束不是复读
 - [ ] 提交前跑过 `pnpm lint:fix`（别手工调引号 / 分号 / 尾逗号）
 

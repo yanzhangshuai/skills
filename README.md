@@ -18,7 +18,7 @@
 
 | 技能 | 适用项目 | 规则数 | 分节 |
 |---|---|---|---|
-| [`nextjs-conventions`](skills/nextjs-conventions/) | Next.js App Router + React 19 + TypeScript | **54** | 14 |
+| [`nextjs-conventions`](skills/nextjs-conventions/) | Next.js App Router + React 19 + TypeScript | **57** | 14 |
 | [`vite-react-conventions`](skills/vite-react-conventions/) | React 19 + TypeScript + Vite（**无 Next.js**） | **25** | 9 |
 
 > **两份永久分开**：一个项目要么是 Next.js、要么是 Vite + React，不会两者都是。
@@ -48,7 +48,7 @@
     │   └── rules/
     │       ├── _sections.md     分节定义（顺序 / 影响等级 / 文件名前缀）
     │       ├── _template.md     单条规则的骨架
-    │       └── <prefix>-<slug>.md   54 条规则
+    │       └── <prefix>-<slug>.md   57 条规则
     └── vite-react-conventions/
         └── ...                  同上，25 条规则
 ```
@@ -144,7 +144,9 @@ Copy-Item -Recurse $env:TEMP\skills\skills\nextjs-conventions $env:USERPROFILE\.
   但最稳的还是只拷你需要的那一份。
 - **这两份管的是「结构 + 可读性」，不是性能。** 性能另由 Vercel 的两份管：
   `vercel-react-best-practices`（async 瀑布、bundle 体积、rerender）、
-  `vercel-next-best-practices`（文件约定与 API 用法）。**三份零重叠，应当叠加使用。**
+  `vercel-next-best-practices`（文件约定与 API 用法）。**与它们基本不重叠，应当叠加使用** ——
+  唯一相邻的是 nextjs 的 `render-*` 两条（重渲染）：那份讲「怎么优化」，本仓讲
+  「依赖数组别写错导致行为异常」，角度不同。
 
 ---
 
@@ -212,7 +214,11 @@ node tools/check-skills.mjs                   # 一致性自检（7 项）
 服务端用模块级 `Map` 缓存 promise（模块作用域在服务端是进程级的，会跨请求、跨用户串数据）、
 以及 Server Action 靠抛异常传业务错误（生产环境会被框架清洗，用户只看到一句通用报错）。
 
-**尚未做第三轮验证**；54 条里还有约三分之一没被任务覆盖到。
+**尚未做第三轮验证**；57 条里还有约三分之一没被任务覆盖到。
+
+2026-09-30 另做了一轮**三路并行静态审查**（过度限制 / 内部矛盾 / 覆盖盲区），
+逐条核实后修掉 6 处规则间冲突与 3 处过度限制，并补了 3 条关键缺口
+（Server Action 鉴权、provider 与 `"use client"` 边界、路由级 `loading.tsx`）。
 
 ---
 

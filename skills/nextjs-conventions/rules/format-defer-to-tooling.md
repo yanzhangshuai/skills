@@ -11,27 +11,8 @@ tags: format, eslint, stylistic, prettier, quotes, semicolons
 **引号、分号、尾逗号、缩进、行宽是工具的事，不是规范的事。**
 判据：**它能不能被 `--fix` 自动修好？** 能，就不该写进规范让人记。
 
-新项目按项目自己的 ESLint / Prettier 配置写。下面是本项目实际强制的值
-（`eslint.config.mjs` 的 `@stylistic` 段）—— 照它写可以一次过 lint：
-
-| 项 | 值 | 规则 |
-|---|---|---|
-| 引号 | **双引号** | `@stylistic/quotes: ["error", "double"]` |
-| 分号 | **必须有** | `@stylistic/semi: ["error", "always"]` |
-| 尾逗号 | **禁止** | `@stylistic/comma-dangle: ["error", "never"]` |
-| 对象花括号内空格 | **有** | `@stylistic/object-curly-spacing: ["error", "always"]` |
-| JSX 属性引号 | **双引号** | `@stylistic/jsx-quotes: ["error", "prefer-double"]` |
-| 类型导入 | 用 `type` 标注 | `@typescript-eslint/consistent-type-imports` |
-
-```ts
-// ❌ 单引号 + 无分号
-import { useState } from 'react'
-const config = { a: 1 }
-
-// ✅ 双引号 + 分号
-import { useState } from "react";
-const config = { a: 1 };
-```
+新项目按项目自己的 ESLint / Prettier 配置写 —— **本技能不规定引号、分号、尾逗号、缩进、行宽**。
+每个项目的配置不同，写进规范只会与它打架；而且这里列出的值对下一个项目未必成立。
 
 ⚠️ **本技能里的代码示例是紧凑写法**（省分号、用单引号），
 目的是让规则本身好读 —— **不要照抄示例的标点**，以项目 formatter 的输出为准。

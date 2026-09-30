@@ -24,7 +24,7 @@ export default function BooksPage() {
 ```
 
 ```tsx
-// app/books/search-filter.tsx
+// app/books/SearchFilter.tsx
 'use client'
 import { useSearchParams } from 'next/navigation'
 

@@ -18,7 +18,7 @@ tags: rsc, use-client, boundary, composition
 'use client'                                  // 整页 + 所有子组件都进 bundle
 
 import { BookTable } from '@/components/book-table'
-import { getBooks } from '@/server/services/book-service'   // ❌ 客户端组件不能这样用
+import { getBooks } from '@/server/modules/book/services/book-service'   // ❌ 客户端组件不能这样用
 
 export default function BooksPage() {
   const [keyword, setKeyword] = useState('')
@@ -35,7 +35,7 @@ export default function BooksPage() {
 
 ```tsx
 // app/admin/books/page.tsx —— Server Component
-import { getBooks } from '@/server/services/book-service'
+import { getBooks } from '@/server/modules/book/services/book-service'
 import { BookFilter } from './book-filter'
 
 export default async function BooksPage() {
@@ -45,7 +45,7 @@ export default async function BooksPage() {
 ```
 
 ```tsx
-// app/admin/books/book-filter.tsx —— 只有这里需要交互
+// app/admin/books/BookFilter.tsx —— 只有这里需要交互
 'use client'
 
 export function BookFilter({ books }: { books: Book[] }) {

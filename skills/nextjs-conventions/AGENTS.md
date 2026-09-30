@@ -3,7 +3,7 @@
 > ⚠️ 本文件由 `tools/build-agents.mjs` 从 `rules/` 自动生成 —— **不要手改**。
 > 改 `rules/<file>.md` 之后重新生成：`node tools/build-agents.mjs`
 
-Next.js App Router + React 19 + TypeScript 项目的架构与可读性规范，面向 AI agent。含 54 条规则、14 个分节，按影响等级从 critical（状态语义、异步动作、错误处理、RSC 边界、数据读取）到 incremental（逻辑抽离、样式与布局、重渲染、代码格式、注释）排序。每条规则给出反例与正例对照。内容来自 wen-yuan 项目的真实沉淀（.trellis/spec）与 TodoSystem 的踩坑记录，不是通用最佳实践的复述。与 Vercel 的 vercel-react-best-practices（性能）和 vercel-next-best-practices（文件约定）互补：那两份管性能与 API 用法，这份管项目结构、命名、状态语义、错误位置与组件骨架。
+Next.js App Router + React 19 + TypeScript 项目的架构与可读性规范，面向 AI agent。含 57 条规则、14 个分节，按影响等级从 critical（状态语义、异步动作、错误处理、RSC 边界、数据读取）到 incremental（逻辑抽离、样式与布局、重渲染、代码格式、注释）排序。每条规则给出反例与正例对照。内容来自 wen-yuan 项目的真实沉淀（.trellis/spec）与 TodoSystem 的踩坑记录，不是通用最佳实践的复述。与 Vercel 的 vercel-react-best-practices（性能）和 vercel-next-best-practices（文件约定）互补：那两份管性能与 API 用法，这份管项目结构、命名、状态语义、错误位置与组件骨架。
 
 ## 目录
 
@@ -30,6 +30,7 @@ Next.js App Router + React 19 + TypeScript 项目的架构与可读性规范，�
    - 4.4 Server Action 必须单独文件 + use server
    - 4.5 浏览器本地状态影响 UI 时必须 mounted 门控
    - 4.6 Server Action 与 Route Handler 按「调用方在哪」分工
+   - 4.7 Server Action 是公开端点，必须自己鉴权
 
 5. **数据读取**（CRITICAL）
    - 5.1 渲染期异步读取统一用 use()
@@ -41,6 +42,7 @@ Next.js App Router + React 19 + TypeScript 项目的架构与可读性规范，�
    - 5.7 缓存按 Cache Components 写，不用旧的 unstable_cache
    - 5.8 use cache 内禁止读 cookies / headers / searchParams
    - 5.9 写后要立刻看到用 updateTag，其余用 revalidateTag
+   - 5.10 路由级加载态用 loading.tsx
 
 6. **目录与边界**（HIGH）
    - 6.1 App Router 的固定目录树
@@ -48,11 +50,12 @@ Next.js App Router + React 19 + TypeScript 项目的架构与可读性规范，�
    - 6.3 tsconfig 与打包器的别名必须同步
    - 6.4 层间依赖单向，禁止循环依赖
    - 6.5 环境变量走单一配置模块
+   - 6.6 providers 必须 "use client"，根 layout 不能加
 
 7. **组件**（HIGH）
-   - 7.1 强制 interface <ComponentName>Props
+   - 7.1 有 props 的组件强制 interface <ComponentName>Props
    - 7.2 组件文件固定顺序
-   - 7.3 根 DOM 必须有语义化 className
+   - 7.3 根 DOM 应该有语义化 className
    - 7.4 可访问性：aria-label 与 button type
    - 7.5 禁止交互元素无效嵌套
    - 7.6 异步确认弹框不能点击即关闭
@@ -609,7 +612,7 @@ App Router 里**没有 `"use client"` 的组件都是 Server Component**。
 ```tsx
 'use client'
 
-import { getBooks } from '@/server/services/book-service'
+import { getBooks } from '@/server/modules/book/services/book-service'
 
 export default function BooksPage() {
   const [books, setBooks] = useState([])      // 本该在服务端做的事搬到了浏览器
@@ -622,7 +625,7 @@ export default function BooksPage() {
 
 ```tsx
 // app/admin/books/page.tsx —— Server Component，无 "use client"
-import { getBooks } from '@/server/services/book-service'
+import { getBooks } from '@/server/modules/book/services/book-service'
 import { BookTableClient } from './book-table-client'
 
 export default async function BooksPage() {
@@ -650,7 +653,7 @@ Reference: [Next.js: Server Components](https://nextjs.org/docs/app/building-you
 'use client'                                  // 整页 + 所有子组件都进 bundle
 
 import { BookTable } from '@/components/book-table'
-import { getBooks } from '@/server/services/book-service'   // ❌ 客户端组件不能这样用
+import { getBooks } from '@/server/modules/book/services/book-service'   // ❌ 客户端组件不能这样用
 
 export default function BooksPage() {
   const [keyword, setKeyword] = useState('')
@@ -667,7 +670,7 @@ export default function BooksPage() {
 
 ```tsx
 // app/admin/books/page.tsx —— Server Component
-import { getBooks } from '@/server/services/book-service'
+import { getBooks } from '@/server/modules/book/services/book-service'
 import { BookFilter } from './book-filter'
 
 export default async function BooksPage() {
@@ -677,7 +680,7 @@ export default async function BooksPage() {
 ```
 
 ```tsx
-// app/admin/books/book-filter.tsx —— 只有这里需要交互
+// app/admin/books/BookFilter.tsx —— 只有这里需要交互
 'use client'
 
 export function BookFilter({ books }: { books: Book[] }) {
@@ -789,7 +792,7 @@ export async function deleteBook(id: string) {
 ```
 
 ```tsx
-// app/admin/books/delete-button.tsx
+// app/admin/books/DeleteButton.tsx
 'use client'
 
 import { deleteBook } from './actions'
@@ -810,8 +813,8 @@ export function DeleteButton({ id }: { id: string }) {
 一旦某个 `components/**` 里的组件要用这个 action，就把 action 挪到 `server/actions/<域>.ts` ——
 否则你会在「就近可读」和「依赖方向」之间卡死。
 
-**别忘了鉴权** —— Server Action 是公开的 HTTP 端点，
-不校验身份就等于把写接口裸奔出去。
+**别忘了鉴权** —— Server Action 是公开的 HTTP 端点，不校验身份就等于把写接口裸奔出去。
+具体怎么做（客户端藏菜单不算鉴权、middleware 与端点校验的分工）见 `rsc-server-action-auth`。
 
 Reference: [Next.js: Server Actions and Mutations](https://nextjs.org/docs/app/building-your-application/data-fetching/server-actions-and-mutations)
 
@@ -948,6 +951,71 @@ export async function GET(
 前端就得为每个接口写一套解析。
 
 Reference: [Next.js: Route Handlers](https://nextjs.org/docs/app/api-reference/file-conventions/route)
+
+### 4.7 Server Action 是公开端点，必须自己鉴权
+
+**影响：CRITICAL** — 客户端藏菜单不是鉴权，漏了这步等于把写接口裸奔出去
+
+Server Action 编译出来就是一个**公开的 POST 端点**，知道它怎么调的人都能直接请求。
+所以**在客户端隐藏按钮 / 菜单不是鉴权** —— 那只影响渲染，不影响端点可达性。
+
+必须做的：
+
+- **每个 Server Action 开头先取当前用户**，取不到就拒绝
+- **校验权限（角色 / 归属）**，而不是只校验「登录了没」
+- **路由保护和端点保护是两件事** —— 挡住了页面不等于挡住了 action
+
+**Incorrect（客户端藏菜单，action 不校验）：**
+
+```tsx
+// components/admin/DeleteBookButton.tsx  ("use client")
+export function DeleteBookButton({ id }: DeleteBookButtonProps) {
+  const { role } = useCurrentUser()
+  if (role !== 'admin') return null        // ❌ 只是不渲染，端点依然可达
+  return <button onClick={() => deleteBook(id)}>删除</button>
+}
+```
+
+```ts
+// app/admin/books/actions.ts
+'use server'
+
+export async function deleteBook(id: string) {
+  await db.book.delete({ where: { id } })  // ❌ 谁 POST 都能删
+}
+```
+
+**Correct（action 自己鉴权，客户端隐藏只当体验）：**
+
+```ts
+// app/admin/books/actions.ts
+'use server'
+
+import { getCurrentUser } from '@/server/auth/current-user'
+
+export async function deleteBook(id: string): Promise<ActionResult<void>> {
+  const user = await getCurrentUser()
+  if (!user) return { ok: false, message: '请先登录' }
+  if (user.role !== 'admin') return { ok: false, message: '没有权限' }
+
+  await db.book.delete({ where: { id } })
+  updateTag('books')
+  return { ok: true, data: undefined }     // 返回而不是抛，见 error-server-action-return-not-throw
+}
+```
+
+**路由保护怎么做：**
+
+- **整体拦未登录**：`middleware.ts` 或根 `layout.tsx` 里读 session 后 `redirect()`。
+  ⚠️ **middleware 跑在 Edge runtime，不要在里面连数据库** —— 它只该做「有没有 cookie」这类轻判断，
+  真正的身份与权限校验放在 Server Component / Server Action 里。
+- **角色级页面**：用路由组 `app/(admin)/` 共享一个 layout，在 layout 里校验角色。
+  但**这只是体验层** —— 该组里的每个 action 仍要各自校验（见上）。
+
+**为什么是 CRITICAL**：失败模式不是「代码难看」，而是**数据被越权修改**。
+而且它**在开发时不会暴露** —— 功能测试全通过，因为 UI 确实把按钮藏住了。
+
+Reference: [Next.js: Server Actions and Mutations（安全）](https://nextjs.org/docs/app/building-your-application/data-fetching/server-actions-and-mutations)
 
 ---
 
@@ -1255,7 +1323,7 @@ export default function BooksPage() {
 ```
 
 ```tsx
-// app/books/search-filter.tsx
+// app/books/SearchFilter.tsx
 'use client'
 import { useSearchParams } from 'next/navigation'
 
@@ -1528,6 +1596,73 @@ async function getPersonas(bookId: string) {
 
 Reference: [Next.js: updateTag](https://nextjs.org/docs/app/api-reference/functions/updateTag)
 
+### 5.10 路由级加载态用 loading.tsx
+
+**影响：HIGH** — 保住流式渲染，慢区块不会拖白整页
+
+App Router 里**路由段级的加载态是文件约定**：`app/<段>/loading.tsx` 自动成为该段的
+`<Suspense>` fallback。不要用 `useState(loading)` + 全屏 spinner 替代它 ——
+那会丢掉流式渲染（streaming），整页要等最慢的那个请求。
+
+**三种加载态各管一层，不要混：**
+
+| 位置 | 管什么 |
+|---|---|
+| `app/<段>/loading.tsx` | **路由段切换**时的整段骨架 |
+| `<Suspense fallback>` | 段内**某一块**慢数据的局部骨架 |
+| `useTransition().isPending` | 用户点击后的**过渡态**（按钮转圈） |
+
+**Incorrect（自己造全屏 loading，丢掉 streaming）：**
+
+```tsx
+// app/books/page.tsx  ("use client")
+export default function BooksPage() {
+  const [loading, setLoading] = useState(true)
+  const [books, setBooks] = useState<Book[]>([])
+
+  useEffect(() => {
+    getBooks().then((b) => {
+      setBooks(b)
+      setLoading(false)
+    })
+  }, [])
+
+  if (loading) return <FullScreenSpinner />   // ❌ 整页空白，而且变成 CSR 取数
+  return <BookTable books={books} />
+}
+```
+
+**Correct（路由级骨架 + 局部 Suspense）：**
+
+```tsx
+// app/books/loading.tsx —— 自动成为该路由段的 Suspense fallback
+export default function Loading() {
+  return <BookTableSkeleton />
+}
+```
+
+```tsx
+// app/books/page.tsx —— Server Component，按块流式渲染
+import { Suspense } from 'react'
+
+export default async function BooksPage() {
+  return (
+    <section className="books-page">
+      <Suspense fallback={<BookTableSkeleton />}>
+        <BookTable />                          {/* 慢的那块自己等，不拖累整页 */}
+      </Suspense>
+      <Suspense fallback={<StatsSkeleton />}>
+        <Stats />
+      </Suspense>
+    </section>
+  )
+}
+```
+
+**骨架要和真实内容同构** —— 高度、列数、间距对不上，加载完会明显跳动，比直接空白更难受。
+
+Reference: [Next.js: loading.js](https://nextjs.org/docs/app/api-reference/file-conventions/loading)
+
 ---
 
 ## 6. 目录与边界
@@ -1622,7 +1757,7 @@ Reference: [Next.js: Project Structure](https://nextjs.org/docs/getting-started/
 **Incorrect（`components/ui/` 里做业务，`hooks/` 里画 JSX）：**
 
 ```tsx
-// components/ui/book-card.tsx —— 基础组件里发了请求
+// components/ui/BookCard.tsx —— 基础组件里发了请求
 export function BookCard({ id }: { id: string }) {
   const [book, setBook] = useState<Book | null>(null)
   useEffect(() => { void fetch(`/api/books/${id}`).then(r => r.json()).then(setBook) }, [id])
@@ -1640,14 +1775,14 @@ export function useBooks() {
 **Correct（各守边界）：**
 
 ```tsx
-// components/ui/card.tsx —— 只画，不知道数据从哪来
+// components/ui/BookCard.tsx —— 只画，不知道数据从哪来
 export function BookCard({ title, cover }: BookCardProps) {
   return <article className="ui-book-card">{title}</article>
 }
 ```
 
 ```ts
-// server/services/book-service.ts —— 服务端取数
+// server/modules/book/services/book-service.ts —— 服务端取数
 export async function getBook(id: string): Promise<Book> {
   return db.book.findUniqueOrThrow({ where: { id } })
 }
@@ -1741,7 +1876,7 @@ app/  →  components/  →  hooks/  →  server/  →  db
 **Incorrect（客户端组件直连数据库层）：**
 
 ```tsx
-// components/book-panel.tsx
+// components/book/BookPanel.tsx
 'use client'
 
 import { prisma } from '@/server/db/prisma'      // ❌ 客户端组件碰 DB
@@ -1754,14 +1889,14 @@ export function BookPanel() {
 
 ```ts
 // 循环依赖：A 导入 B，B 又导入 A
-// server/services/book-service.ts
+// server/modules/book/services/book-service.ts
 import { formatBook } from '@/components/book/format'    // ❌ server 依赖 UI 层
 ```
 
 **Correct（依赖只向下，边界转换收在 service 层）：**
 
 ```ts
-// server/services/book-service.ts
+// server/modules/book/services/book-service.ts
 import { prisma } from '@/server/db/prisma'
 import type { BookView } from '@/types/book'
 
@@ -1772,7 +1907,7 @@ export async function getBooks(): Promise<BookView[]> {
 ```
 
 ```tsx
-// components/book-panel.tsx
+// components/book/BookPanel.tsx
 import type { BookView } from '@/types/book'              // 只依赖类型
 export function BookPanel({ book }: { book: BookView }) { ... }
 ```
@@ -1804,7 +1939,7 @@ Next.js 还多两个坑，**散落读取时都不报错**，只在部署后表�
 **Incorrect（各文件各自读，两个坑全踩）：**
 
 ```ts
-// components/book-chart.tsx  ("use client")
+// components/BookChart.tsx  ("use client")
 const secret = process.env.SECRET_KEY           // 永远是 undefined，且不报错
 
 // app/dashboard/page.tsx  (Client Component)
@@ -1847,6 +1982,78 @@ export const serverConfig = {
 
 Reference: [Next.js: Environment Variables](https://nextjs.org/docs/app/guides/environment-variables)
 
+### 6.6 providers 必须 "use client"，根 layout 不能加
+
+**影响：HIGH** — 根 layout 一旦变成客户端组件，整站退化成 CSR
+
+`providers/` 里放的是 React Context（主题、i18n、Toaster 等），它们**必须是 Client Component**。
+但**根 `layout.tsx` 不能加 `"use client"`** —— 那会让整棵树（含所有页面）都变成客户端组件，
+Server Component 的取数与缓存全部失效。
+
+正确做法：**把 provider 包进一个客户端组件，再在根 layout 里渲染它。**
+
+**Incorrect（给根 layout 加 "use client"）：**
+
+```tsx
+// app/layout.tsx
+'use client'                                  // ❌ 整站退化成 CSR
+
+import { ThemeProvider } from 'next-themes'
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="zh-CN">
+      <body>
+        <ThemeProvider attribute="class">{children}</ThemeProvider>
+      </body>
+    </html>
+  )
+}
+```
+
+**Correct（客户端壳 + 服务端 layout）：**
+
+```tsx
+// src/providers/index.tsx —— 全局 provider 的家，见 layout-app-tree
+'use client'
+
+import { ThemeProvider } from 'next-themes'
+import { Toaster } from '@/components/ui/Toaster'
+
+export function Providers({ children }: { children: React.ReactNode }) {
+  return (
+    <ThemeProvider attribute="class">
+      {children}
+      <Toaster />                             {/* 全局提示的宿主，整棵树只挂一次 */}
+    </ThemeProvider>
+  )
+}
+```
+
+```tsx
+// app/layout.tsx —— 保持 Server Component，不加 "use client"
+import { Providers } from '@/providers'
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="zh-CN">
+      <body>
+        <Providers>{children}</Providers>
+      </body>
+    </html>
+  )
+}
+```
+
+**两个附带结论：**
+
+- **`children` 作为 prop 传进客户端组件是安全的** —— 它已经在服务端渲染好了，
+  不会因为被包进 `'use client'` 就变成客户端组件。上面这个模式能成立，全靠这一点。
+- **`toast.success()` 需要宿主**：`action-return-boolean` 的示例里用了 `toast.success`，
+  它依赖某个 `<Toaster />` 挂在树上。忘了挂，提示会**静默消失** —— 不报错，只是永远看不到。
+
+Reference: [Next.js: Server and Client Components（组合模式）](https://nextjs.org/docs/app/building-your-application/rendering/composition-patterns)
+
 ---
 
 ## 7. 组件
@@ -1855,7 +2062,7 @@ Reference: [Next.js: Environment Variables](https://nextjs.org/docs/app/guides/e
 
 组件骨架（Props interface、语义化 className、可访问性）是 review 和重构的锚点。
 
-### 7.1 强制 interface <ComponentName>Props
+### 7.1 有 props 的组件强制 interface <ComponentName>Props
 
 **影响：HIGH** — props 有了稳定锚点，lint、review、重构才有落点
 
@@ -1872,10 +2079,6 @@ export function BookCard({ title, cover }: { title: string; cover?: string }) {
 
 export function AnalyzeButton(props: any) {
   return <button>{props.label}</button>
-}
-
-export function ThemeToggle() {          // 没有 props，也不声明空 interface
-  return <button>切换</button>
 }
 ```
 
@@ -1904,10 +2107,10 @@ export function ThemeToggle({ defaultTheme = 'light' }: ThemeToggleProps) { ... 
 
 - interface **与组件同文件 colocate**（不放进 `types/` —— 它是组件私有契约）
 - 命名固定为 `<ComponentName>Props`
-- 空 props 也要声明（`interface HomePageProps {}`），保持形态统一
+- **没有 props 的组件不用声明空 interface** —— `interface HomePageProps {}` 不带来任何信息，
+  还会撞上 `@typescript-eslint/no-empty-object-type`。直接写 `function HomePage()` 就好，
+  不需要为了「形态统一」去改 lint 配置。
 - 包装型基础组件可以 `extends React.ComponentProps<'button'>` 扩展原生 props
-- **需要 lint 配合**：空 interface 默认会被 `@typescript-eslint/no-empty-object-type` 报错，
-  要配 `{ allowInterfaces: "always" }`；老规则 `no-empty-interface` 要关掉
 
 Reference: [React: TypeScript 与 props 类型](https://react.dev/learn/typescript)
 
@@ -1977,13 +2180,17 @@ export function BookList({ books }: BookListProps) { // 6. 实现
 
 Reference: [Next.js: Client Components（`"use client"` 位置）](https://nextjs.org/docs/app/building-your-application/rendering/client-components)
 
-### 7.3 根 DOM 必须有语义化 className
+### 7.3 根 DOM 应该有语义化 className
 
-**影响：HIGH** — 给样式覆盖、E2E 定位和排查都留下稳定锚点
+**影响：MEDIUM** — 给样式覆盖、E2E 定位和排查都留下稳定锚点
 
-每个组件的**根 DOM 元素**必须包含一个领域导向的 kebab-case class token。
+每个组件的**根 DOM 元素**应该带一个领域导向的 kebab-case class token。
 `wrapper` / `container` / `inner` 这类泛化命名不能作为根 class ——
 它们在页面里出现几十次，起不到任何定位作用。
+
+**例外**：如果项目已经有别的定位手段（E2E 用 `data-testid`、或该组件在页面里只出现一次），
+可以不额外加。**但只要出现过「这是哪个组件渲染的」这类排查需求，就该补上** ——
+这条的价值在排查时兑现，不在写的时候。所以它是「应该」而不是「必须」。
 
 **Incorrect（泛化命名，出问题时不知道说的是哪个）：**
 
@@ -2145,6 +2352,8 @@ Reference: [Next.js: Hydration Error](https://nextjs.org/docs/messages/react-hyd
 - 确认按钮触发异步动作时，**`onClick` 必须 `event.preventDefault()`** ——
   否则 Radix 会在请求完成前自动关闭弹框
 - 异步成功后由业务代码显式关闭；**失败时保留弹框**
+- **`pending` 来自统一外壳**（`useAsyncAction`），**不要**为弹框自建 `deleting` / `isDeleting` ——
+  自建就等于在组件里裸写状态机，见 `action-single-wrapper` 与 `state-loading-vs-pending`
 - pending 期间禁用取消与确认按钮，确认按钮显示进行中文案
 
 **Incorrect（点击即关闭，失败后无上下文）：**
@@ -2156,39 +2365,39 @@ async function handleDelete(item: Item) {
 }
 ```
 
-**Correct（受控 + pending + 失败保留）：**
+**Correct（受控 + 走统一外壳 + 失败保留）：**
 
 ```tsx
+// 删除是「动作」，走统一外壳（见 action-single-wrapper）—— pending 由它管
+const { pending, error, run } = useAsyncAction('删除失败')
+
 function handleConfirmDelete(event: React.MouseEvent<HTMLButtonElement>) {
-  event.preventDefault()             // 阻止 Radix 自动关闭
-  if (deleteTarget && !deleting) {
+  event.preventDefault()                    // 阻止 Radix 自动关闭
+  if (deleteTarget && !pending) {
     void handleDelete(deleteTarget)
   }
 }
 
 async function handleDelete(item: Item) {
-  setDeleting(true)
-  try {
-    await deleteItem(item.id)
-    setDeleteTarget(null)            // 只有成功才关
-  } finally {
-    setDeleting(false)
+  if (await run(() => deleteItem(item.id))) {
+    setDeleteTarget(null)                   // 只有成功才关
   }
 }
 
 <AlertDialog
   open={deleteTarget !== null}
   onOpenChange={(open) => {
-    if (!open && !deleting) setDeleteTarget(null)     // pending 期间不允许关闭
+    if (!open && !pending) setDeleteTarget(null)     // pending 期间不允许关闭
   }}
 >
   <AlertDialogContent>
     <AlertDialogTitle>确认删除「{deleteTarget?.name}」？</AlertDialogTitle>
     <AlertDialogDescription>删除后无法直接恢复。</AlertDialogDescription>
+    {error && <p className="text-destructive">{error}</p>}   {/* 失败时保留弹框并就地显示原因 */}
     <AlertDialogFooter>
-      <AlertDialogCancel disabled={deleting}>取消</AlertDialogCancel>
-      <AlertDialogAction disabled={deleting} onClick={handleConfirmDelete}>
-        {deleting ? '删除中…' : '确认删除'}
+      <AlertDialogCancel disabled={pending}>取消</AlertDialogCancel>
+      <AlertDialogAction disabled={pending} onClick={handleConfirmDelete}>
+        {pending ? '删除中…' : '确认删除'}
       </AlertDialogAction>
     </AlertDialogFooter>
   </AlertDialogContent>
@@ -2476,10 +2685,13 @@ Reference: [TypeScript: unknown vs any](https://www.typescriptlang.org/docs/hand
 | **kebab-case**（Next.js 生态主流） | shadcn/ui（`use-mobile.ts`、`use-mounted.ts`、`use-copy-to-clipboard.ts`）、Vercel 的 `vercel/ai`（`use-chat.ts`）与 `vercel/commerce`、Next.js 官方示例（`login-form.tsx`） | 文件名是**路径标识**，与导出名解耦；组件文件也一律 kebab-case |
 | **camelCase**（库 / 大型应用的 house style） | TanStack Query（`useQuery.ts`、`useMutation.ts`）、cal.com（`useBookerUrl.ts`） | **文件名 = 导出的函数名**；一个文件一个公开 API 时才自然 |
 
-**本项目跟 kebab-case 一派** —— 目录里同时有组件、hook、工具函数，
-统一成「组件 PascalCase、其他 kebab-case」只需要一条判据；
-跟 camelCase 那派就得先判断「这个文件是不是只导出一个 hook」，
-判据不唯一，最终必然混着写。
+**本项目取两者的混合：组件 PascalCase、其他 kebab-case。** 理由：
+目录里同时有组件、hook、工具函数，用「这个文件 `export` 的是不是组件」**一条判据**就能全部划清；
+跟 camelCase 那派得先判断「这个文件是不是只导出一个 hook」，判据不唯一，最终必然混着写。
+
+⚠️ **注意这和纯 kebab 派（shadcn）不一样** —— 那派连组件文件也是 kebab。
+本项目的做法是「组件 PascalCase + 其他 kebab」，所以
+`components/ui/BookCard.tsx` 导出 `BookCard`，**文件名和导出名在组件这一支上是对齐的**。
 
 > **真正有强制力的是函数名。** `eslint-plugin-react-hooks` 只认「函数名以 `use` 开头」，
 > **文件名写成什么都不影响 lint**。所以这条纯属团队约定 ——
@@ -2572,7 +2784,7 @@ Reference: [TypeScript: Coding guidelines](https://github.com/microsoft/TypeScri
 
 | 类型 | 风格 | 示例 |
 |---|---|---|
-| 布尔变量 / props | `is` / `has` / `should` / `can` 前缀 | `isLoading`、`hasVerified`、`shouldRetry`、`canEdit` |
+| 布尔变量 / props | `is` / `has` / `should` / `can` 前缀 | `isVisible`、`hasVerified`、`shouldRetry`、`canEdit` |
 | 常量 | SCREAMING_SNAKE_CASE | `MAX_RETRY_COUNT`、`ITEMS_PER_PAGE` |
 | 函数 | 动词开头 | `getBook`、`parseAiOutput`、`toBookView` |
 | Hook | `use` + 领域名 | `useBooks`、`useGraphData` |
@@ -2581,10 +2793,16 @@ Reference: [TypeScript: Coding guidelines](https://github.com/microsoft/TypeScri
 > 组件 PascalCase、其他一律 kebab-case，见 `naming-file-case`。
 > 所以 `hooks/use-books.ts` 里导出的函数叫 `useBooks`，两者形态不同是**故意的**。
 
+> ⚠️ **例外：异步状态位不加 `is` 前缀。** 读取中叫 `loading`、动作中叫 `pending` ——
+> 这两个是跨规则约定的**保留名**，见 `state-loading-vs-pending`。
+> 写成 `isLoading` / `isPending` 会让「读」和「写」失去统一的辨认标志，
+> 也和 React 自己的 `useFormStatus()` / `useTransition()` 对不上。
+> 例外只给这两个名字；其他布尔变量照旧加前缀。
+
 **Incorrect（名字看不出类型和用途）：**
 
 ```ts
-const loading = false          // 布尔但没前缀，读到时要想一下
+const visible = false          // 布尔但没前缀，读到时要想一下
 const verified = true
 const flag = true              // flag 是什么的 flag？
 const maxRetry = 3             // 常量但用 camelCase
@@ -2597,7 +2815,7 @@ function useData() { ... }     // hook 名字没有领域信息
 **Correct：**
 
 ```ts
-const isLoading = false
+const isVisible = false
 const hasVerified = true
 const canEdit = user.role === 'admin'
 const MAX_RETRY_COUNT = 3
@@ -2705,7 +2923,7 @@ const idx = items.findIndex(isDone)
 const btnRef = useRef<HTMLButtonElement>(null)
 
 // 上下文里已经有的词不要重复：函数名是 useBooks，变量就不必叫 bookList
-const { data, isLoading } = useBooks()
+const { data, loading } = useBooks()
 ```
 
 **两条硬边界：**
@@ -2738,7 +2956,7 @@ export function BookCard({ imageWidth, pageNumber }: BookCardProps) {
 }
 ```
 
-**也别反过来**：短不是目标，**信息量**才是。`isLoading` 不要缩成 `ld`、
+**也别反过来**：短不是目标，**信息量**才是。`loading` 不要缩成 `ld`、
 `handleSubmit` 不要缩成 `hs` —— 那已经不是缩写，是密码了。
 
 Reference: [MDN: JavaScript code style guide（命名）](https://developer.mozilla.org/en-US/docs/MDN/Writing_guidelines/Writing_style_guide/Code_style_guide/JavaScript)
@@ -3167,27 +3385,8 @@ Reference: [React: useState 的函数式更新](https://react.dev/reference/reac
 **引号、分号、尾逗号、缩进、行宽是工具的事，不是规范的事。**
 判据：**它能不能被 `--fix` 自动修好？** 能，就不该写进规范让人记。
 
-新项目按项目自己的 ESLint / Prettier 配置写。下面是本项目实际强制的值
-（`eslint.config.mjs` 的 `@stylistic` 段）—— 照它写可以一次过 lint：
-
-| 项 | 值 | 规则 |
-|---|---|---|
-| 引号 | **双引号** | `@stylistic/quotes: ["error", "double"]` |
-| 分号 | **必须有** | `@stylistic/semi: ["error", "always"]` |
-| 尾逗号 | **禁止** | `@stylistic/comma-dangle: ["error", "never"]` |
-| 对象花括号内空格 | **有** | `@stylistic/object-curly-spacing: ["error", "always"]` |
-| JSX 属性引号 | **双引号** | `@stylistic/jsx-quotes: ["error", "prefer-double"]` |
-| 类型导入 | 用 `type` 标注 | `@typescript-eslint/consistent-type-imports` |
-
-```ts
-// ❌ 单引号 + 无分号
-import { useState } from 'react'
-const config = { a: 1 }
-
-// ✅ 双引号 + 分号
-import { useState } from "react";
-const config = { a: 1 };
-```
+新项目按项目自己的 ESLint / Prettier 配置写 —— **本技能不规定引号、分号、尾逗号、缩进、行宽**。
+每个项目的配置不同，写进规范只会与它打架；而且这里列出的值对下一个项目未必成立。
 
 ⚠️ **本技能里的代码示例是紧凑写法**（省分号、用单引号），
 目的是让规则本身好读 —— **不要照抄示例的标点**，以项目 formatter 的输出为准。
@@ -3329,5 +3528,8 @@ Reference: [TypeScript: JSDoc Reference](https://www.typescriptlang.org/docs/han
 - https://nextjs.org/docs/app/api-reference/functions/updateTag
 - https://nextjs.org/docs/app/api-reference/file-conventions/route
 - https://nextjs.org/docs/app/guides/environment-variables
+- https://nextjs.org/docs/app/building-your-application/data-fetching/server-actions-and-mutations
+- https://nextjs.org/docs/app/building-your-application/routing/middleware
+- https://nextjs.org/docs/app/api-reference/file-conventions/loading
 - https://www.typescriptlang.org/docs/handbook/jsdoc-supported-types.html
 - https://developer.mozilla.org/en-US/docs/MDN/Writing_guidelines/Writing_style_guide/Code_style_guide/JavaScript

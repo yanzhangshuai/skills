@@ -23,7 +23,7 @@ Next.js 还多两个坑，**散落读取时都不报错**，只在部署后表�
 **Incorrect（各文件各自读，两个坑全踩）：**
 
 ```ts
-// components/book-chart.tsx  ("use client")
+// components/BookChart.tsx  ("use client")
 const secret = process.env.SECRET_KEY           // 永远是 undefined，且不报错
 
 // app/dashboard/page.tsx  (Client Component)

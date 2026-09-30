@@ -21,7 +21,7 @@ tags: layout, boundary, components, server, types
 **Incorrect（`components/ui/` 里做业务，`hooks/` 里画 JSX）：**
 
 ```tsx
-// components/ui/book-card.tsx —— 基础组件里发了请求
+// components/ui/BookCard.tsx —— 基础组件里发了请求
 export function BookCard({ id }: { id: string }) {
   const [book, setBook] = useState<Book | null>(null)
   useEffect(() => { void fetch(`/api/books/${id}`).then(r => r.json()).then(setBook) }, [id])
@@ -39,14 +39,14 @@ export function useBooks() {
 **Correct（各守边界）：**
 
 ```tsx
-// components/ui/card.tsx —— 只画，不知道数据从哪来
+// components/ui/BookCard.tsx —— 只画，不知道数据从哪来
 export function BookCard({ title, cover }: BookCardProps) {
   return <article className="ui-book-card">{title}</article>
 }
 ```
 
 ```ts
-// server/services/book-service.ts —— 服务端取数
+// server/modules/book/services/book-service.ts —— 服务端取数
 export async function getBook(id: string): Promise<Book> {
   return db.book.findUniqueOrThrow({ where: { id } })
 }

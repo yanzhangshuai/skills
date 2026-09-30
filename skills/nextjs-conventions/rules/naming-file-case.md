@@ -33,10 +33,13 @@ tags: naming, file, pascalcase, kebab-case
 | **kebab-case**（Next.js 生态主流） | shadcn/ui（`use-mobile.ts`、`use-mounted.ts`、`use-copy-to-clipboard.ts`）、Vercel 的 `vercel/ai`（`use-chat.ts`）与 `vercel/commerce`、Next.js 官方示例（`login-form.tsx`） | 文件名是**路径标识**，与导出名解耦；组件文件也一律 kebab-case |
 | **camelCase**（库 / 大型应用的 house style） | TanStack Query（`useQuery.ts`、`useMutation.ts`）、cal.com（`useBookerUrl.ts`） | **文件名 = 导出的函数名**；一个文件一个公开 API 时才自然 |
 
-**本项目跟 kebab-case 一派** —— 目录里同时有组件、hook、工具函数，
-统一成「组件 PascalCase、其他 kebab-case」只需要一条判据；
-跟 camelCase 那派就得先判断「这个文件是不是只导出一个 hook」，
-判据不唯一，最终必然混着写。
+**本项目取两者的混合：组件 PascalCase、其他 kebab-case。** 理由：
+目录里同时有组件、hook、工具函数，用「这个文件 `export` 的是不是组件」**一条判据**就能全部划清；
+跟 camelCase 那派得先判断「这个文件是不是只导出一个 hook」，判据不唯一，最终必然混着写。
+
+⚠️ **注意这和纯 kebab 派（shadcn）不一样** —— 那派连组件文件也是 kebab。
+本项目的做法是「组件 PascalCase + 其他 kebab」，所以
+`components/ui/BookCard.tsx` 导出 `BookCard`，**文件名和导出名在组件这一支上是对齐的**。
 
 > **真正有强制力的是函数名。** `eslint-plugin-react-hooks` 只认「函数名以 `use` 开头」，
 > **文件名写成什么都不影响 lint**。所以这条纯属团队约定 ——

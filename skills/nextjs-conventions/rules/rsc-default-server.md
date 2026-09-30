@@ -17,7 +17,7 @@ App Router 里**没有 `"use client"` 的组件都是 Server Component**。
 ```tsx
 'use client'
 
-import { getBooks } from '@/server/services/book-service'
+import { getBooks } from '@/server/modules/book/services/book-service'
 
 export default function BooksPage() {
   const [books, setBooks] = useState([])      // 本该在服务端做的事搬到了浏览器
@@ -30,7 +30,7 @@ export default function BooksPage() {
 
 ```tsx
 // app/admin/books/page.tsx —— Server Component，无 "use client"
-import { getBooks } from '@/server/services/book-service'
+import { getBooks } from '@/server/modules/book/services/book-service'
 import { BookTableClient } from './book-table-client'
 
 export default async function BooksPage() {

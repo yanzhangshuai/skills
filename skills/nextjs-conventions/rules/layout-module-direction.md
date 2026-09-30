@@ -26,7 +26,7 @@ app/  →  components/  →  hooks/  →  server/  →  db
 **Incorrect（客户端组件直连数据库层）：**
 
 ```tsx
-// components/book-panel.tsx
+// components/book/BookPanel.tsx
 'use client'
 
 import { prisma } from '@/server/db/prisma'      // ❌ 客户端组件碰 DB
@@ -39,14 +39,14 @@ export function BookPanel() {
 
 ```ts
 // 循环依赖：A 导入 B，B 又导入 A
-// server/services/book-service.ts
+// server/modules/book/services/book-service.ts
 import { formatBook } from '@/components/book/format'    // ❌ server 依赖 UI 层
 ```
 
 **Correct（依赖只向下，边界转换收在 service 层）：**
 
 ```ts
-// server/services/book-service.ts
+// server/modules/book/services/book-service.ts
 import { prisma } from '@/server/db/prisma'
 import type { BookView } from '@/types/book'
 
@@ -57,7 +57,7 @@ export async function getBooks(): Promise<BookView[]> {
 ```
 
 ```tsx
-// components/book-panel.tsx
+// components/book/BookPanel.tsx
 import type { BookView } from '@/types/book'              // 只依赖类型
 export function BookPanel({ book }: { book: BookView }) { ... }
 ```

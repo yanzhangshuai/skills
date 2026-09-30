@@ -10,7 +10,7 @@ tags: naming, boolean, constant, hook, convention
 
 | 类型 | 风格 | 示例 |
 |---|---|---|
-| 布尔变量 / props | `is` / `has` / `should` / `can` 前缀 | `isLoading`、`hasVerified`、`shouldRetry`、`canEdit` |
+| 布尔变量 / props | `is` / `has` / `should` / `can` 前缀 | `isVisible`、`hasVerified`、`shouldRetry`、`canEdit` |
 | 常量 | SCREAMING_SNAKE_CASE | `MAX_RETRY_COUNT`、`ITEMS_PER_PAGE` |
 | 函数 | 动词开头 | `getBook`、`parseAiOutput`、`toBookView` |
 | Hook | `use` + 领域名 | `useBooks`、`useGraphData` |
@@ -19,10 +19,16 @@ tags: naming, boolean, constant, hook, convention
 > 组件 PascalCase、其他一律 kebab-case，见 `naming-file-case`。
 > 所以 `hooks/use-books.ts` 里导出的函数叫 `useBooks`，两者形态不同是**故意的**。
 
+> ⚠️ **例外：异步状态位不加 `is` 前缀。** 读取中叫 `loading`、动作中叫 `pending` ——
+> 这两个是跨规则约定的**保留名**，见 `state-loading-vs-pending`。
+> 写成 `isLoading` / `isPending` 会让「读」和「写」失去统一的辨认标志，
+> 也和 React 自己的 `useFormStatus()` / `useTransition()` 对不上。
+> 例外只给这两个名字；其他布尔变量照旧加前缀。
+
 **Incorrect（名字看不出类型和用途）：**
 
 ```ts
-const loading = false          // 布尔但没前缀，读到时要想一下
+const visible = false          // 布尔但没前缀，读到时要想一下
 const verified = true
 const flag = true              // flag 是什么的 flag？
 const maxRetry = 3             // 常量但用 camelCase
@@ -35,7 +41,7 @@ function useData() { ... }     // hook 名字没有领域信息
 **Correct：**
 
 ```ts
-const isLoading = false
+const isVisible = false
 const hasVerified = true
 const canEdit = user.role === 'admin'
 const MAX_RETRY_COUNT = 3

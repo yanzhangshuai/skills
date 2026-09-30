@@ -1,16 +1,20 @@
 ---
-title: 根 DOM 必须有语义化 className
+title: 根 DOM 应该有语义化 className
 order: 3
-impact: HIGH
+impact: MEDIUM
 impactDescription: 给样式覆盖、E2E 定位和排查都留下稳定锚点
 tags: component, classname, semantic, kebab-case
 ---
 
-## 根 DOM 必须有语义化 className
+## 根 DOM 应该有语义化 className
 
-每个组件的**根 DOM 元素**必须包含一个领域导向的 kebab-case class token。
+每个组件的**根 DOM 元素**应该带一个领域导向的 kebab-case class token。
 `wrapper` / `container` / `inner` 这类泛化命名不能作为根 class ——
 它们在页面里出现几十次，起不到任何定位作用。
+
+**例外**：如果项目已经有别的定位手段（E2E 用 `data-testid`、或该组件在页面里只出现一次），
+可以不额外加。**但只要出现过「这是哪个组件渲染的」这类排查需求，就该补上** ——
+这条的价值在排查时兑现，不在写的时候。所以它是「应该」而不是「必须」。
 
 **Incorrect（泛化命名，出问题时不知道说的是哪个）：**
 

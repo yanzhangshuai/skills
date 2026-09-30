@@ -43,7 +43,7 @@ export async function deleteBook(id: string) {
 ```
 
 ```tsx
-// app/admin/books/delete-button.tsx
+// app/admin/books/DeleteButton.tsx
 'use client'
 
 import { deleteBook } from './actions'
@@ -64,7 +64,7 @@ export function DeleteButton({ id }: { id: string }) {
 一旦某个 `components/**` 里的组件要用这个 action，就把 action 挪到 `server/actions/<域>.ts` ——
 否则你会在「就近可读」和「依赖方向」之间卡死。
 
-**别忘了鉴权** —— Server Action 是公开的 HTTP 端点，
-不校验身份就等于把写接口裸奔出去。
+**别忘了鉴权** —— Server Action 是公开的 HTTP 端点，不校验身份就等于把写接口裸奔出去。
+具体怎么做（客户端藏菜单不算鉴权、middleware 与端点校验的分工）见 `rsc-server-action-auth`。
 
 Reference: [Next.js: Server Actions and Mutations](https://nextjs.org/docs/app/building-your-application/data-fetching/server-actions-and-mutations)

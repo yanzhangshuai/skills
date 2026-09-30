@@ -765,8 +765,10 @@ utils/
 >
 > 社区确实有两派：**kebab-case**（shadcn/ui 的 `use-mobile.ts`、Vercel 的 `vercel/ai`
 > 用 `use-chat.ts`）与 **camelCase**（TanStack Query 的 `useQuery.ts` —— 它走「文件名 =
-> 导出名」）。Next.js 官方对此**没有规定**，本项目跟 kebab-case 一派：
-> 目录里同时有组件、hook、工具函数，一条判据就能划清，不用先判断「是否只导出一个 hook」。
+> 导出名」）。框架官方对此**没有规定**。
+> **本项目取两者的混合：组件 PascalCase、其他 kebab-case** ——
+> 一条判据（「这个文件 `export` 的是不是组件」）就能划清，不用先判断「是否只导出一个 hook」。
+> 纯 kebab 派（shadcn）连组件文件也是 kebab，代价是文件名上看不出组件与非组件。
 >
 > **真正有强制力的是函数名** —— `eslint-plugin-react-hooks` 只认「函数名以 `use` 开头」，
 > 文件名写成什么都不影响 lint。所以这条纯属团队约定，**统一比选哪派更重要**。
@@ -897,7 +899,7 @@ const idx = items.findIndex(isDone)
 const btnRef = useRef<HTMLButtonElement>(null)
 
 // 上下文里已经有的词不要重复：函数名是 useBooks，变量就不必叫 bookList
-const { data, isLoading } = useBooks()
+const { data, loading } = useBooks()
 ```
 
 **两条硬边界：**
@@ -930,7 +932,7 @@ export function BookCard({ imageWidth, pageNumber }: BookCardProps) {
 }
 ```
 
-**也别反过来**：短不是目标，**信息量**才是。`isLoading` 不要缩成 `ld`、
+**也别反过来**：短不是目标，**信息量**才是。`loading` 不要缩成 `ld`、
 `handleSubmit` 不要缩成 `hs` —— 那已经不是缩写，是密码了。
 
 Reference: [MDN: JavaScript code style guide（命名）](https://developer.mozilla.org/en-US/docs/MDN/Writing_guidelines/Writing_style_guide/Code_style_guide/JavaScript)
@@ -949,14 +951,19 @@ Reference: [MDN: JavaScript code style guide（命名）](https://developer.mozi
 
 满足**任意一条**就抽：
 
-- 页面里 `useState` **超过 2 个**
+- 页面里 `useState` **超过 3 个**
 - 出现 `try/catch`
 - 出现带异步的 `useEffect`
 - 同一段逻辑要在两个组件里用
+- `useState` 只有 2~3 个，但它们**互相联动** —— 改一个要同步改另一个，或要一起校验
 
 **口径**：`useState` 只数**这个组件自己声明的**，不含它渲染的子组件 ——
-否则随便一个页面都会「超标」。四条条件**各自独立**，命中任意一条就够；
+否则随便一个页面都会「超标」。五条条件**各自独立**，命中任意一条就够；
 所以表单组件哪怕只有 2 个字段 state，只要它自己写了 `try/catch` 或提交逻辑，也该抽。
+
+**数字只是提示，不是门槛。** 真正的判据是：**这段逻辑有没有一个能命名的整体流程？**
+有（「登录」「结账」「生成」）就该收进 hook；没有（只是几个互不相干的展示开关）就留在页面里 ——
+见 `extract-dont-over-split`。
 
 **Incorrect（页面里堆着状态机，看不出「点提交会发生什么」）：**
 
@@ -1206,6 +1213,15 @@ function StudentList() {
 
 **只在这三件事都成立时才用这条路径**：确实是读取、愿意加 `<Suspense>` 边界、
 愿意维护 promise 缓存。否则就用普通的 `loading` + `useEffect`。
+
+**模块级缓存的作用域要说清楚**：它活在**当前页面会话**里 ——
+纯客户端 SPA 中，模块作用域 = 这个用户自己的标签页，**不会跨用户串数据**，所以这里可以用。
+代价是：只要不 `invalidate`，切走再回来拿到的还是旧数据，
+所以**必须同时给出 `invalidateStudents()` 这类失效入口**。
+
+> ⚠️ **这条只适用于客户端。** 服务端**不能**用模块级缓存 ——
+> 服务端的模块作用域是**进程级**的，会跨请求、跨用户串数据（那是数据泄露，不是性能问题）。
+> 服务端要用 React 的 `cache()`，它的作用域是单次请求。
 
 Reference: [use](https://react.dev/reference/react/use)
 

@@ -15,6 +15,8 @@ tags: component, dialog, confirm, async, pending
 - 确认按钮触发异步动作时，**`onClick` 必须 `event.preventDefault()`** ——
   否则 Radix 会在请求完成前自动关闭弹框
 - 异步成功后由业务代码显式关闭；**失败时保留弹框**
+- **`pending` 来自统一外壳**（`useAsyncAction`），**不要**为弹框自建 `deleting` / `isDeleting` ——
+  自建就等于在组件里裸写状态机，见 `action-single-wrapper` 与 `state-loading-vs-pending`
 - pending 期间禁用取消与确认按钮，确认按钮显示进行中文案
 
 **Incorrect（点击即关闭，失败后无上下文）：**
@@ -26,39 +28,39 @@ async function handleDelete(item: Item) {
 }
 ```
 
-**Correct（受控 + pending + 失败保留）：**
+**Correct（受控 + 走统一外壳 + 失败保留）：**
 
 ```tsx
+// 删除是「动作」，走统一外壳（见 action-single-wrapper）—— pending 由它管
+const { pending, error, run } = useAsyncAction('删除失败')
+
 function handleConfirmDelete(event: React.MouseEvent<HTMLButtonElement>) {
-  event.preventDefault()             // 阻止 Radix 自动关闭
-  if (deleteTarget && !deleting) {
+  event.preventDefault()                    // 阻止 Radix 自动关闭
+  if (deleteTarget && !pending) {
     void handleDelete(deleteTarget)
   }
 }
 
 async function handleDelete(item: Item) {
-  setDeleting(true)
-  try {
-    await deleteItem(item.id)
-    setDeleteTarget(null)            // 只有成功才关
-  } finally {
-    setDeleting(false)
+  if (await run(() => deleteItem(item.id))) {
+    setDeleteTarget(null)                   // 只有成功才关
   }
 }
 
 <AlertDialog
   open={deleteTarget !== null}
   onOpenChange={(open) => {
-    if (!open && !deleting) setDeleteTarget(null)     // pending 期间不允许关闭
+    if (!open && !pending) setDeleteTarget(null)     // pending 期间不允许关闭
   }}
 >
   <AlertDialogContent>
     <AlertDialogTitle>确认删除「{deleteTarget?.name}」？</AlertDialogTitle>
     <AlertDialogDescription>删除后无法直接恢复。</AlertDialogDescription>
+    {error && <p className="text-destructive">{error}</p>}   {/* 失败时保留弹框并就地显示原因 */}
     <AlertDialogFooter>
-      <AlertDialogCancel disabled={deleting}>取消</AlertDialogCancel>
-      <AlertDialogAction disabled={deleting} onClick={handleConfirmDelete}>
-        {deleting ? '删除中…' : '确认删除'}
+      <AlertDialogCancel disabled={pending}>取消</AlertDialogCancel>
+      <AlertDialogAction disabled={pending} onClick={handleConfirmDelete}>
+        {pending ? '删除中…' : '确认删除'}
       </AlertDialogAction>
     </AlertDialogFooter>
   </AlertDialogContent>
