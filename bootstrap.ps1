@@ -1,4 +1,4 @@
-﻿﻿﻿﻿<#
+﻿<#
 ⚠️ 本文件必须保存为 **UTF-8 with BOM**，否则 Windows PowerShell 5.1 会挂。
 
    5.1 在没有 BOM 时按**系统 ANSI 代码页**（中文 Windows 上是 GBK）解读 .ps1，
@@ -194,6 +194,6 @@ Write-Host ''
 Write-Host "规范仓：$StandardsHome"
 Write-Host ''
 Write-Host '本机验证：'
-Write-Host "  dir `"$wbHome\skills\code-standards`""
+Write-Host "  dir `"$wbHome\skills`""
 Write-Host ''
 Write-Host '⚠️ 规范尚未定稿 —— DECISIONS.md 有 16 条待拍板。' -ForegroundColor Yellow
