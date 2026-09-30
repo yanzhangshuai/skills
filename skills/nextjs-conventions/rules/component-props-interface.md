@@ -55,5 +55,7 @@ export function ThemeToggle({ defaultTheme = 'light' }: ThemeToggleProps) { ... 
 - 命名固定为 `<ComponentName>Props`
 - 空 props 也要声明（`interface HomePageProps {}`），保持形态统一
 - 包装型基础组件可以 `extends React.ComponentProps<'button'>` 扩展原生 props
+- **需要 lint 配合**：空 interface 默认会被 `@typescript-eslint/no-empty-object-type` 报错，
+  要配 `{ allowInterfaces: "always" }`；老规则 `no-empty-interface` 要关掉
 
 Reference: [React: TypeScript 与 props 类型](https://react.dev/learn/typescript)

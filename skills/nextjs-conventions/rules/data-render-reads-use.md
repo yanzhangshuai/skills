@@ -71,16 +71,19 @@ export function ChapterPanel({ chapterPromise }: { chapterPromise: Promise<Chapt
 // ❌ 每次 render 都新建 promise
 const chapter = use(getChapter(id))
 
-// ✅ promise 由父级创建并下传，或在模块级按 key 缓存
-const cache = new Map<string, Promise<Chapter>>()
-export function getChapterPromise(id: string) {
-  const hit = cache.get(id)
-  if (hit) return hit
-  const p = getChapter(id)
-  cache.set(id, p)
-  return p
-}
+// ✅ 服务端：用 React 的 cache()，作用域是「单次请求」
+import { cache } from 'react'
+
+export const getChapter = cache(async (id: string) =>
+  db.chapter.findUnique({ where: { id } }),
+)
 ```
+
+⚠️ **别用模块级 `Map` 当缓存。** 在 Server Component / server 模块里，模块作用域是**进程级**的 ——
+那个 Map 会跨请求、跨用户存活：既可能把 A 用户的数据发给 B 用户，也会让数据永远不更新。
+- **服务端**：用 React 的 `cache()`，作用域 = 单次请求，天然按请求隔离
+- **客户端**：promise 提到父级创建并下传。父级每次 render 重建一次是**正确**的 ——
+  别为了「缓存」把它塞进模块级 Map，那会引入上面那个 bug
 
 Reference: [use](https://react.dev/reference/react/use)、
 [Next.js: Fetching Data](https://nextjs.org/docs/app/building-your-application/data-fetching)

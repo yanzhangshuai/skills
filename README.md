@@ -46,7 +46,7 @@ Claude Code 用 `~/.claude/skills/`，Cursor / Codex 项目级用 `.agents/skill
 
 | 技能 | 适用 | 覆盖 | 条数 |
 |---|---|---|---|
-| `nextjs-conventions` | Next.js App Router + React 19 + TS | RSC 边界、Next 15 异步 API、`use()` 读取与 SWR 轮询、Cache Components 缓存、路由级错误、Server Action / Route Handler 分工、目录与层间依赖、组件骨架、Zod 校验、命名与缩写尺度、状态语义、逻辑抽离、代码格式、公开接口注释 | 51 |
+| `nextjs-conventions` | Next.js App Router + React 19 + TS | RSC 边界、Next 15 异步 API、`use()` 读取与 SWR 轮询、Cache Components 缓存、路由级错误、Server Action / Route Handler 分工、目录与层间依赖、组件骨架、Zod 校验、命名与缩写尺度、状态语义、逻辑抽离、代码格式、公开接口注释 | 52 |
 | `react-conventions` | React 19 + TS + Vite（无 Next.js） | 状态语义、异步动作、错误处理、目录与边界、命名与缩写尺度、逻辑抽离、React 19 边界、代码格式、公开接口注释 | 25 |
 | `nestjs-best-practices` | NestJS | 待写 | — |
 
@@ -56,6 +56,9 @@ Claude Code 用 `~/.claude/skills/`，Cursor / Codex 项目级用 `.agents/skill
 > 样式与重渲染），Vite 那份另有 **9 条**专属（固定 `src/` 分层、组件按域分目录、
 > 禁止在组件里 `fetch`、环境变量单一来源等）。
 > **同一项目只装其中一份**，别两份都装。
+>
+> **这不是过渡方案，是最终形态**：一个项目要么是 Next.js、要么是 Vite + React，
+> 不会两者都是。所以两份**永久分开、互不依赖**，`description` 里的互相排他句是设计的一部分。
 
 > **和 Vercel 的技能不冲突，应当叠加使用。**
 > `vercel-react-best-practices` 管**性能**（async 瀑布、bundle 体积、rerender、js 微优化），
@@ -79,7 +82,7 @@ standards/
     │   └── rules/
     │       ├── _sections.md   分节定义（顺序 / 影响等级 / 文件名前缀）
     │       ├── _template.md   单条规则的骨架
-    │       └── <prefix>-<slug>.md   51 条规则
+    │       └── <prefix>-<slug>.md   52 条规则
     ├── react-conventions/
     │   └── ...            同上，25 条规则
     └── nestjs-best-practices/
@@ -139,17 +142,37 @@ node tools/check-skills.mjs        # 无参数 = 检查本仓全部技能
 
 ## 当前状态
 
-**`react-conventions` 已成型**（25 条 / 9 分节），**尚未在真实生成任务里验证过**。
-`DECISIONS.md` 里有 16 条待拍板，其中 D9 / D12 / D14 已先行落进
-`naming-language` / `naming-interface-vs-type` / `layout-env-single-source` 三条规则 ——
-**这三条还没经你确认**。
+**两份都已成型并做过两轮对照验证。** 当前规模：`react-conventions` 25 条 / 9 分节，
+`nextjs-conventions` 52 条 / 14 分节。
 
-**`nextjs-conventions` 已成型**（51 条 / 14 分节）。
-已做过一次**对照实验**（同一任务，带 skill vs 不带 skill 各跑一遍），
-暴露出并已修掉：Hook 文件名写反（camelCase → kebab-case，与两个真实项目对齐）、
-目录树缺 `lib/services/` 与 `server/actions/`、缺「轮询用 SWR」与「mounted 门控」两条规则。
-**但还没有按 Vercel 的方法论做过多轮验证。**
-两处立场冲突已按你的裁决落地：渲染期读取用 `use()`（跟 wen-yuan），
-页面级编排 hook 与通用共享 hook 的门槛分开写（`extract-page-hook` / `extract-shared-hook-threshold`）。
+**验证方式**（Vercel 方法论）：同一个任务起两个 subagent，一组读 `SKILL.md` 并严格遵守、
+另一组只要求「写高质量代码」，**并把两份技能临时移出 `~/.workbuddy-ai/skills/` 以排除自动加载的污染**。
 
-`nestjs-best-practices` 还是空的。
+| 轮次 | 任务 | 带技能 | 纯基线 |
+|---|---|---|---|
+| 1 | Next.js 图书管理模块 | 29 文件，引用 40 条规则名 | 24 文件，0 条规则名 |
+| 2 | Vite + React 学生名单 | 26 文件，引用 24 条规则名 | 29 文件，0 条规则名 |
+
+**最硬的一条证据**：两组基线**都把非组件文件写成了 camelCase / PascalCase**
+（`useStudents.ts`、`BooksView.tsx`），而两个带技能组都是 kebab-case（`use-students.ts`）——
+这正是上一轮修掉的那条写反的规则。目录树同理：带技能组完全吻合 `layout-app-tree` /
+`layout-fixed-src-tree`；基线组没有 `src/`、组件平铺、服务层混在 `lib/` 里。
+
+**本轮又修掉 6 个缺陷**（全部由 subagent 在 `NOTES.md` 里报出）：
+
+1. `data-render-reads-use` 的「模块级 `Map` 缓存」示例**是错的** —— 服务端模块作用域是进程级的，
+   会跨请求跨用户串数据。改用 React 的 `cache()`（作用域 = 单次请求）。
+2. 新增 `error-server-action-return-not-throw`：Server Action 抛出的错误在 **production 会被框架清洗**，
+   所以 `e instanceof ApiError` 拿不到 message，必须 `return` 结果对象。
+3. `rsc-server-action-separate-file` 与 `layout-module-direction` 原本**无解** ——
+   补上前提：`app/<段>/actions.ts` 只能被同一路由段的文件导入，否则挪到 `server/actions/`。
+4. `action-single-wrapper` 正文说「动作」、`SKILL.md` 自检项却写「所有异步动作」，口径不一致 —— 补上边界。
+5. `extract-triggers` 的 `useState > 2` 没说是谁的状态 —— 补上「只数本组件自己声明的」。
+6. `comment-public-api` / `component-props-interface` 各补一句
+   （未导出的 Props 不强制；空 interface 需要 lint 配置配合）。
+
+**仍未做**：第三轮验证；`DECISIONS.md` 的 16 条待拍板（其中 D9 / D12 / D14 已先行落进
+`naming-language` / `naming-interface-vs-type` / `layout-env-single-source` 三条规则，未经确认）。
+
+`nestjs-best-practices` 还是空的（需先侦察 `aixue/home/server`、`plovax/plovax-server`、
+`novel/pw-backend`；**不要**用 wen-yuan 的 `backend/`，那是 Next.js 服务端）。

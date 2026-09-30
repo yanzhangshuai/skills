@@ -43,4 +43,7 @@ const setIsLoading = (v: boolean) => setLoading(v)
 **注释里不要写会过期的东西**：具体行号、接口返回的示例值、没有主语的「以后优化」。
 说不清就整句删掉，别留半句。
 
+**组件自己的 `Props` interface 不算公开接口**（读者就在同一个文件里），不强制写；
+但字段含义不自明时要写 —— 单位、取值范围、是否可选、有没有默认值。
+
 Reference: [TypeScript: JSDoc Reference](https://www.typescriptlang.org/docs/handbook/jsdoc-supported-types.html)

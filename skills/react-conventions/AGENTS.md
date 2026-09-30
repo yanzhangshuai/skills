@@ -146,6 +146,12 @@ Reference: [React: Passing data deeply with context（命名与解构）](https:
 3. 跑动作，把异常翻译成人话
 4. 解除 `pending`
 
+**边界：这条只管「动作」，不管「读取」。** 判据是**有没有「提交」语义** ——
+用户点一下、系统去改点什么、可能失败、失败要告诉用户 → 走外壳。
+单纯的读取（首屏拉列表、切页刷新）用 `loading` 状态 + 服务层就够，
+不必套 `useAsyncAction`（它多带一个 error 出口，而读取的错误该由边界或就地提示承担）。
+**SKILL.md 自检项里说的「所有异步动作都走统一外壳」，指的是前者。**
+
 **Incorrect（每个动作手写一遍状态机，四处漏风）：**
 
 ```tsx
@@ -948,6 +954,10 @@ Reference: [MDN: JavaScript code style guide（命名）](https://developer.mozi
 - 出现带异步的 `useEffect`
 - 同一段逻辑要在两个组件里用
 
+**口径**：`useState` 只数**这个组件自己声明的**，不含它渲染的子组件 ——
+否则随便一个页面都会「超标」。四条条件**各自独立**，命中任意一条就够；
+所以表单组件哪怕只有 2 个字段 state，只要它自己写了 `try/catch` 或提交逻辑，也该抽。
+
 **Incorrect（页面里堆着状态机，看不出「点提交会发生什么」）：**
 
 ```tsx
@@ -1302,6 +1312,9 @@ const setIsLoading = (v: boolean) => setLoading(v)
 
 **注释里不要写会过期的东西**：具体行号、接口返回的示例值、没有主语的「以后优化」。
 说不清就整句删掉，别留半句。
+
+**组件自己的 `Props` interface 不算公开接口**（读者就在同一个文件里），不强制写；
+但字段含义不自明时要写 —— 单位、取值范围、是否可选、有没有默认值。
 
 Reference: [TypeScript: JSDoc Reference](https://www.typescriptlang.org/docs/handbook/jsdoc-supported-types.html)
 

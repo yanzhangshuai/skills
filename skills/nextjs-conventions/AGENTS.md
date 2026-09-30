@@ -3,7 +3,7 @@
 > ⚠️ 本文件由 `tools/build-agents.mjs` 从 `rules/` 自动生成 —— **不要手改**。
 > 改 `rules/<file>.md` 之后重新生成：`node tools/build-agents.mjs`
 
-Next.js App Router + React 19 + TypeScript 项目的架构与可读性规范，面向 AI agent。含 51 条规则、14 个分节，按影响等级从 critical（状态语义、异步动作、错误处理、RSC 边界、数据读取）到 incremental（逻辑抽离、样式与布局、重渲染、代码格式、注释）排序。每条规则给出反例与正例对照。内容来自 wen-yuan 项目的真实沉淀（.trellis/spec）与 TodoSystem 的踩坑记录，不是通用最佳实践的复述。与 Vercel 的 vercel-react-best-practices（性能）和 vercel-next-best-practices（文件约定）互补：那两份管性能与 API 用法，这份管项目结构、命名、状态语义、错误位置与组件骨架。
+Next.js App Router + React 19 + TypeScript 项目的架构与可读性规范，面向 AI agent。含 52 条规则、14 个分节，按影响等级从 critical（状态语义、异步动作、错误处理、RSC 边界、数据读取）到 incremental（逻辑抽离、样式与布局、重渲染、代码格式、注释）排序。每条规则给出反例与正例对照。内容来自 wen-yuan 项目的真实沉淀（.trellis/spec）与 TodoSystem 的踩坑记录，不是通用最佳实践的复述。与 Vercel 的 vercel-react-best-practices（性能）和 vercel-next-best-practices（文件约定）互补：那两份管性能与 API 用法，这份管项目结构、命名、状态语义、错误位置与组件骨架。
 
 ## 目录
 
@@ -21,6 +21,7 @@ Next.js App Router + React 19 + TypeScript 项目的架构与可读性规范，�
    - 3.2 业务错误展示后端 message
    - 3.3 客户端校验不替代后端
    - 3.4 路由级 error.tsx 与 unstable_rethrow
+   - 3.5 Server Action 的业务错误用返回结果传，不要靠抛异常
 
 4. **RSC 边界**（CRITICAL）
    - 4.1 默认 Server Component，use client 只给交互叶子
@@ -181,6 +182,12 @@ Reference: [MDN: 解构赋值（重命名）](https://developer.mozilla.org/en-U
 2. 置 `pending`
 3. 跑动作，把异常翻译成人话
 4. 解除 `pending`
+
+**边界：这条只管「动作」，不管「读取」。** 判据是**有没有「提交」语义** ——
+用户点一下、系统去改点什么、可能失败、失败要告诉用户 → 走外壳。
+单纯的读取（首屏拉列表、切页刷新）用 `loading` 状态 + 服务层就够，
+不必套 `useAsyncAction`（它多带一个 error 出口，而读取的错误该由边界或就地提示承担）。
+**SKILL.md 自检项里说的「所有异步动作都走统一外壳」，指的是前者。**
 
 **Incorrect（每个动作手写一遍状态机，四处漏风）：**
 
@@ -524,6 +531,61 @@ try {
 Reference: [Next.js: error.js](https://nextjs.org/docs/app/api-reference/file-conventions/error)、
 [unstable_rethrow](https://nextjs.org/docs/app/api-reference/functions/unstable_rethrow)
 
+### 3.5 Server Action 的业务错误用返回结果传，不要靠抛异常
+
+**影响：CRITICAL** — 抛出的错误在生产环境会被框架清洗，用户只看到一句通用报错
+
+Server Action 里抛出的异常，在 **production 会被 Next.js 清洗** ——
+message 被换成一句通用文案，只保留 `digest` 供服务端日志对照。
+于是 `catch (e) { e instanceof ApiError ? e.message : '兜底' }` 这种写法
+**开发环境好好的，上线后所有业务提示都退化成兜底文案**。
+（`error-api-message-first` 要求展示后端 message —— 靠抛异常根本做不到。）
+
+做法：让 action **返回**一个判别联合结果，客户端判 `ok` 而不是 `catch`。
+
+**Incorrect（抛异常传业务错误，生产环境文案丢失）：**
+
+```ts
+'use server'
+
+export async function createBook(input: unknown) {
+  const parsed = bookSchema.safeParse(input)
+  if (!parsed.success) throw new ApiError('书名不能为空')   // 生产环境会被清洗
+  await db.book.create({ data: parsed.data })
+}
+```
+
+**Correct（返回结果对象，文案原样到达客户端）：**
+
+```ts
+'use server'
+
+export type ActionResult<T> = { ok: true; data: T } | { ok: false; message: string }
+
+export async function createBook(input: unknown): Promise<ActionResult<Book>> {
+  const parsed = bookSchema.safeParse(input)
+  if (!parsed.success) return { ok: false, message: '书名不能为空' }
+  const book = await db.book.create({ data: parsed.data })
+  updateTag('book-list')
+  return { ok: true, data: book }
+}
+```
+
+```ts
+// 客户端：外壳里判 ok，而不是 catch
+const result = await createBook(form)
+if (!result.ok) {
+  setError(result.message)     // 业务文案原样展示
+  return false
+}
+```
+
+**两个例外，必须抛**：`redirect()` 和 `notFound()` 是靠抛异常工作的 ——
+所以 action 里若有 `try/catch`，`catch` 块第一行必须 `unstable_rethrow(error)`
+（见 `error-route-boundary`），否则跳转会静默失效。
+
+Reference: [Next.js: Server Actions and Mutations](https://nextjs.org/docs/app/building-your-application/data-fetching/server-actions-and-mutations)
+
 ---
 
 ## 4. RSC 边界
@@ -740,6 +802,12 @@ export function DeleteButton({ id }: { id: string }) {
 **判据是复用范围，不是文件类型** —— 不要为了「统一」把所有 action 都挪进 `server/actions/`，
 那样反而丢掉了就近可读性。
 
+**但「就近放 `app/`」有个前提：调用方也得在那个路由段里。**
+`layout-module-direction` 规定依赖只能向下（`app/ → components/ → hooks/ → server/`），
+所以 `components/**` **不能**向上导入 `app/**`。
+一旦某个 `components/**` 里的组件要用这个 action，就把 action 挪到 `server/actions/<域>.ts` ——
+否则你会在「就近可读」和「依赖方向」之间卡死。
+
 **别忘了鉴权** —— Server Action 是公开的 HTTP 端点，
 不校验身份就等于把写接口裸奔出去。
 
@@ -954,16 +1022,19 @@ export function ChapterPanel({ chapterPromise }: { chapterPromise: Promise<Chapt
 // ❌ 每次 render 都新建 promise
 const chapter = use(getChapter(id))
 
-// ✅ promise 由父级创建并下传，或在模块级按 key 缓存
-const cache = new Map<string, Promise<Chapter>>()
-export function getChapterPromise(id: string) {
-  const hit = cache.get(id)
-  if (hit) return hit
-  const p = getChapter(id)
-  cache.set(id, p)
-  return p
-}
+// ✅ 服务端：用 React 的 cache()，作用域是「单次请求」
+import { cache } from 'react'
+
+export const getChapter = cache(async (id: string) =>
+  db.chapter.findUnique({ where: { id } }),
+)
 ```
+
+⚠️ **别用模块级 `Map` 当缓存。** 在 Server Component / server 模块里，模块作用域是**进程级**的 ——
+那个 Map 会跨请求、跨用户存活：既可能把 A 用户的数据发给 B 用户，也会让数据永远不更新。
+- **服务端**：用 React 的 `cache()`，作用域 = 单次请求，天然按请求隔离
+- **客户端**：promise 提到父级创建并下传。父级每次 render 重建一次是**正确**的 ——
+  别为了「缓存」把它塞进模块级 Map，那会引入上面那个 bug
 
 Reference: [use](https://react.dev/reference/react/use)、
 [Next.js: Fetching Data](https://nextjs.org/docs/app/building-your-application/data-fetching)
@@ -1771,6 +1842,8 @@ export function ThemeToggle({ defaultTheme = 'light' }: ThemeToggleProps) { ... 
 - 命名固定为 `<ComponentName>Props`
 - 空 props 也要声明（`interface HomePageProps {}`），保持形态统一
 - 包装型基础组件可以 `extends React.ComponentProps<'button'>` 扩展原生 props
+- **需要 lint 配合**：空 interface 默认会被 `@typescript-eslint/no-empty-object-type` 报错，
+  要配 `{ allowInterfaces: "always" }`；老规则 `no-empty-interface` 要关掉
 
 Reference: [React: TypeScript 与 props 类型](https://react.dev/learn/typescript)
 
@@ -3111,6 +3184,9 @@ const setIsLoading = (v: boolean) => setLoading(v)
 
 **注释里不要写会过期的东西**：具体行号、接口返回的示例值、没有主语的「以后优化」。
 说不清就整句删掉，别留半句。
+
+**组件自己的 `Props` interface 不算公开接口**（读者就在同一个文件里），不强制写；
+但字段含义不自明时要写 —— 单位、取值范围、是否可选、有没有默认值。
 
 Reference: [TypeScript: JSDoc Reference](https://www.typescriptlang.org/docs/handbook/jsdoc-supported-types.html)
 

@@ -58,6 +58,12 @@ export function DeleteButton({ id }: { id: string }) {
 **判据是复用范围，不是文件类型** —— 不要为了「统一」把所有 action 都挪进 `server/actions/`，
 那样反而丢掉了就近可读性。
 
+**但「就近放 `app/`」有个前提：调用方也得在那个路由段里。**
+`layout-module-direction` 规定依赖只能向下（`app/ → components/ → hooks/ → server/`），
+所以 `components/**` **不能**向上导入 `app/**`。
+一旦某个 `components/**` 里的组件要用这个 action，就把 action 挪到 `server/actions/<域>.ts` ——
+否则你会在「就近可读」和「依赖方向」之间卡死。
+
 **别忘了鉴权** —— Server Action 是公开的 HTTP 端点，
 不校验身份就等于把写接口裸奔出去。
 

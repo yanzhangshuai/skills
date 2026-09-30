@@ -10,7 +10,7 @@ metadata:
 # Next.js 项目约定
 
 Next.js App Router + React 19 + TypeScript 项目的**架构与可读性**规范。
-51 条规则，14 个分节，按影响等级排序。
+52 条规则，14 个分节，按影响等级排序。
 
 > **和 Vercel 那两份的分工**（三份**零重叠**，应叠加使用）：
 >
@@ -22,6 +22,13 @@ Next.js App Router + React 19 + TypeScript 项目的**架构与可读性**规范
 >
 > 另有一份 `react-conventions` 面向 **React 19 + Vite（无 Next.js）** ——
 > 栈无关的规则两份措辞一致，栈相关的部分各写各的。
+> **两份永久分开**：一个项目要么是 Next.js、要么是 Vite + React，不会两者都是。
+
+> **前置依赖**（本技能的规则默认它们存在，不是可选项）：
+> `zod`（外部输入校验）、`swr`（轮询）、`tailwindcss`，以及一个弹框原语
+> （Radix / shadcn 的 `AlertDialog` 之类）。项目还没装的话，
+> 相关规则（`type-external-input-zod`、`data-polling-with-swr`、`component-async-confirm-dialog`）
+> 要么先装依赖，要么按规则里写的替代方案办 —— **别默默降级成手写**。
 
 ## When to Apply
 
@@ -41,7 +48,7 @@ Next.js App Router + React 19 + TypeScript 项目的**架构与可读性**规范
 |---|---|---|---|---|
 | 1 | 状态语义 | CRITICAL | `state-` | 2 |
 | 2 | 异步动作 | CRITICAL | `action-` | 3 |
-| 3 | 错误处理 | CRITICAL | `error-` | 4 |
+| 3 | 错误处理 | CRITICAL | `error-` | 5 |
 | 4 | RSC 边界 | CRITICAL | `rsc-` | 6 |
 | 5 | 数据读取 | CRITICAL | `data-` | 9 |
 | 6 | 目录与边界 | HIGH | `layout-` | 4 |
@@ -73,6 +80,7 @@ Next.js App Router + React 19 + TypeScript 项目的**架构与可读性**规范
 - `error-api-message-first` — 业务错误展示后端 message，其余用兜底文案
 - `error-client-validation-not-authority` — 客户端校验不替代后端
 - `error-route-boundary` — 路由级 `error.tsx` 必须 `"use client"`；`catch` 里先 `unstable_rethrow`
+- `error-server-action-return-not-throw` — Server Action 的业务错误要 `return` 结果对象，抛出的错误在生产环境会被清洗
 
 ### 4. RSC 边界（CRITICAL）
 
@@ -180,7 +188,9 @@ Next.js App Router + React 19 + TypeScript 项目的**架构与可读性**规范
 - [ ] 没有 `<a><button/></a>` 这类无效嵌套
 - [ ] 外部输入（AI 输出 / 请求体 / URL 参数）都过了 Zod
 - [ ] 没有 `any` / `!` / `@ts-ignore`
-- [ ] 读用 `loading`、动作用 `pending`；异步动作都走统一外壳
+- [ ] 读用 `loading`、动作用 `pending`；**写动作**都走统一外壳（读取的 `loading` 由状态承担，不必套外壳）
+- [ ] Server Action 的业务错误是 `return` 回来的、不是抛出去的；`try/catch` 里有 `unstable_rethrow`
+- [ ] `use()` 的 promise 在渲染外创建；服务端缓存用 React 的 `cache()`，没有模块级 `Map`
 - [ ] 表单错误就地显示，没有交给 Error Boundary
 - [ ] effect 依赖数组长度与顺序恒定，派生数组都过了 `useMemo`
 - [ ] 高频交互里没有 no-op 状态写入（语义未变就返回 `prev`）

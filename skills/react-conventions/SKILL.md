@@ -16,6 +16,9 @@ React 19 + TypeScript + Vite 项目的**架构与可读性**规范。25 条规�
 > 这份管**结构与可读性**（目录、命名、状态语义、错误位置），面向 **Vite、无 Next.js**。
 > 两份**零重叠，应当叠加使用**。
 
+> **前置条件**：本技能假设项目已按 `layout-fixed-src-tree` 建好 `src/` 分层，
+> 且有一个统一的请求封装（`src/apis/http.ts` 之类）。没有的话先按该规则建，再写业务代码。
+
 ## When to Apply
 
 - 新建页面、组件、hook
@@ -110,7 +113,7 @@ React 19 + TypeScript + Vite 项目的**架构与可读性**规范。25 条规�
 
 - [ ] 页面组件里没有业务逻辑，`useState` ≤ 2 且无 `try/catch`
 - [ ] 读用 `loading`、动作用 `pending`，没有 `busy` / `submitting` 这类第三种叫法
-- [ ] 所有异步动作都走统一外壳，组件里没有裸写的 `setPending(true)` / `finally`
+- [ ] 所有**写动作**都走统一外壳，组件里没有裸写的 `setPending(true)` / `finally`（读取的 `loading` 由状态承担）
 - [ ] 错误显示在触发点附近，`ApiError` 的 message 被展示
 - [ ] 组件 / 页面里没有直接 `fetch`
 - [ ] 文件名大小写符合约定，两处别名配置一致
