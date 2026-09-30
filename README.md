@@ -2,55 +2,48 @@
 
 NestJS 与 React 的代码规范，以 **agent skill** 的形式提供。
 
-目标：**在任意电脑、任意位置都能用**。
+目的只有一个：**让 AI 生成新项目时，按同一套约定写代码。**
 
-## 安装
+## 这是什么
+
+不是给人看的文档，是给 AI 读的**指令集**。
+
+每个技能是一份 `SKILL.md`（工作流 + 索引）+ 若干 `references/*.md`（细节）。
+AI 加载 `SKILL.md` 后按它的步骤走，需要细节时再去读对应的 reference。
+
+## 怎么用
+
+技能是**自包含**的 —— 把整个技能目录拷到目标机器的技能目录下就行，不依赖本仓位置。
 
 ```bash
-git clone <本仓地址> <任意目录>
-bash <任意目录>/bootstrap.sh
+# WorkBuddy（Linux / macOS / WSL / Git Bash）
+cp -r <本仓>/skills/react-best-practices ~/.workbuddy-ai/skills/
 ```
-
-纯 Windows（没有 WSL / Git Bash）：
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File <任意目录>\bootstrap.ps1
+# 纯 Windows
+Copy-Item -Recurse <本仓>\skills\react-best-practices $env:USERPROFILE\.workbuddy-ai\skills\
 ```
 
-两个脚本行为一致、都幂等，从**脚本自身位置**推导仓路径（零硬编码）：
+Claude Code 用 `~/.claude/skills/`，Codex / Cursor 各自有对应目录，内容一样。
 
-- 把 `skills/*` 同步到 `~/.workbuddy-ai/skills/`
-- 若装了 Claude Code，写 `~/.claude/code-standards.md` 并在 `CLAUDE.md` 里加一行 import
-
-可选参数：`--print`（只打印不落盘）、`--claude`、`--all`。
-
-> 技能是**自包含**的（`SKILL.md` + `references/`），装完之后不依赖仓的位置。
-> 仓挪了位置不用管；**改了仓里的内容，要重跑一次 bootstrap 才会同步**。
-
-## 用法
-
-生成新项目时，读对应技能的 `SKILL.md` 并按它的工作流走。
-
-> 💡 **触发更可靠的做法**：在 prompt 里显式带上技能名，例如
+> 💡 **触发更可靠的做法**：prompt 里显式带上技能名，例如
 > 「用 react-best-practices，建一个 Todo 应用」。
-> 不显式点名时，技能的触发依赖 prompt 与 description 的关键词匹配度，可能不稳定。
+> 不点名时，触发依赖 prompt 与 `description` 的关键词匹配度，可能不稳定。
 
 ## 可用技能
 
 | 技能 | 适用 | 覆盖 |
 |---|---|---|
-| `react-best-practices` | React 19 + TypeScript + Vite + Tailwind | 状态语义、异步动作、错误处理、目录分层 |
+| `react-best-practices` | React 19 + TypeScript + Vite + Tailwind | 状态语义、异步动作、错误处理、目录分层、逻辑抽离 |
 | `nestjs-best-practices` | NestJS | 待写 |
 
 ## 结构
 
 ```
 standards/
-├── AGENTS.md         跨工具入口（Claude Code / Codex / Cursor 都读它）
-├── README.md         本文件
-├── DECISIONS.md      待裁决清单
-├── bootstrap.sh      安装入口（macOS / Linux / WSL / Git Bash）
-├── bootstrap.ps1     安装入口（纯 Windows，UTF-8 with BOM）
+├── README.md          本文件
+├── DECISIONS.md       待裁决清单（内部工作稿，不是技能的一部分）
 └── skills/
     ├── react-best-practices/
     │   ├── SKILL.md
@@ -61,25 +54,19 @@ standards/
 
 ## 设计要点
 
-**分层，不是分栈。** 大部分规则与技术栈无关（目录分层、命名、状态语义、错误处理）。
-按栈写成几份文档必然漂移 —— 所以通用规则用**同一套措辞**在各技能里复述，
-而不是各自发明。
-
 **索引 + references。** `SKILL.md` 只放工作流和「什么时候该读哪份」，
-细节全部下沉到 `references/`。agent 一次能读的量有限，把细节塞进 SKILL.md
+细节全部下沉到 `references/`。AI 一次能读的量有限，把细节塞进 `SKILL.md`
 会让真正重要的规则被淹掉。
 
 **每条规则要能改变行为。** 写之前先问：不加这条，模型会不会写错？
-本来就会写对的规则只是噪声。Capability（没它就会错）必须写；
-Efficiency（能做对但做不好）要克制。
+本来就会写对的规则只是噪声。
 
-**可移植性的三层**：
+- **Capability**（没它就会错）—— 必须写。版本特有的坑、文档没写的默认行为、训练数据之外的边界。
+- **Efficiency**（能做对但做不好）—— 要克制。只是「更优的写法」不值得占篇幅。
 
-```
-内容层  仓零绝对路径，可 clone 到任意位置
-入口层  bootstrap 幂等 + 自适应路径
-项目层  生成的项目自带规范 —— 项目走到哪，规范跟到哪
-```
+**分层，不是分栈。** 大部分规则与技术栈无关（目录分层、命名、状态语义、错误处理）。
+按栈写成几份文档必然漂移 —— 所以通用规则用**同一套措辞**在各技能里复述，
+而不是各自发明。
 
 ## 来源
 
