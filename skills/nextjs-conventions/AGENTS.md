@@ -3,7 +3,7 @@
 > ⚠️ 本文件由 `tools/build-agents.mjs` 从 `rules/` 自动生成 —— **不要手改**。
 > 改 `rules/<file>.md` 之后重新生成：`node tools/build-agents.mjs`
 
-Next.js App Router + React 19 + TypeScript 项目的架构与可读性规范，面向 AI agent。含 45 条规则、13 个分节，按影响等级从 critical（状态语义、异步动作、错误处理、RSC 边界、数据读取）到 incremental（逻辑抽离、样式与布局、重渲染、代码格式）排序。每条规则给出反例与正例对照。内容来自 wen-yuan 项目的真实沉淀（.trellis/spec）与 TodoSystem 的踩坑记录，不是通用最佳实践的复述。与 Vercel 的 vercel-react-best-practices（性能）和 vercel-next-best-practices（文件约定）互补：那两份管性能与 API 用法，这份管项目结构、命名、状态语义、错误位置与组件骨架。
+Next.js App Router + React 19 + TypeScript 项目的架构与可读性规范，面向 AI agent。含 51 条规则、14 个分节，按影响等级从 critical（状态语义、异步动作、错误处理、RSC 边界、数据读取）到 incremental（逻辑抽离、样式与布局、重渲染、代码格式、注释）排序。每条规则给出反例与正例对照。内容来自 wen-yuan 项目的真实沉淀（.trellis/spec）与 TodoSystem 的踩坑记录，不是通用最佳实践的复述。与 Vercel 的 vercel-react-best-practices（性能）和 vercel-next-best-practices（文件约定）互补：那两份管性能与 API 用法，这份管项目结构、命名、状态语义、错误位置与组件骨架。
 
 ## 目录
 
@@ -28,6 +28,7 @@ Next.js App Router + React 19 + TypeScript 项目的架构与可读性规范，�
    - 4.3 Client Component 不能是 async
    - 4.4 Server Action 必须单独文件 + use server
    - 4.5 浏览器本地状态影响 UI 时必须 mounted 门控
+   - 4.6 Server Action 与 Route Handler 按「调用方在哪」分工
 
 5. **数据读取**（CRITICAL）
    - 5.1 渲染期异步读取统一用 use()
@@ -36,6 +37,9 @@ Next.js App Router + React 19 + TypeScript 项目的架构与可读性规范，�
    - 5.4 能提前触发的取数先 preload
    - 5.5 useSearchParams 的组件必须被 Suspense 包裹
    - 5.6 客户端轮询用 SWR，不用 use()
+   - 5.7 缓存按 Cache Components 写，不用旧的 unstable_cache
+   - 5.8 use cache 内禁止读 cookies / headers / searchParams
+   - 5.9 写后要立刻看到用 updateTag，其余用 revalidateTag
 
 6. **目录与边界**（HIGH）
    - 6.1 App Router 的固定目录树
@@ -60,6 +64,7 @@ Next.js App Router + React 19 + TypeScript 项目的架构与可读性规范，�
    - 9.1 组件 PascalCase，其他 kebab-case
    - 9.2 标识符英文，注释与文档中文
    - 9.3 布尔前缀、常量与 hook 命名
+   - 9.4 条件允许时用通行缩写，不自造缩写
 
 10. **逻辑抽离**（MEDIUM）
    - 10.1 页面级编排 hook 不受两处复用约束
@@ -77,6 +82,9 @@ Next.js App Router + React 19 + TypeScript 项目的架构与可读性规范，�
 13. **代码格式**（MEDIUM）
    - 13.1 格式由工具决定，不靠记忆
    - 13.2 导入分四组，组间空行
+
+14. **注释**（MEDIUM）
+   - 14.1 注释只写给公开接口，且写约束不写复读
 
 ---
 
@@ -807,6 +815,70 @@ export function ThemeToggle() {
 Reference: [React: Hydration Mismatch](https://react.dev/link/hydration-mismatch)、
 [Next.js: cookies()](https://nextjs.org/docs/app/api-reference/functions/cookies)
 
+### 4.6 Server Action 与 Route Handler 按「调用方在哪」分工
+
+**影响：HIGH** — 选错了要么多写一层没人调的 URL，要么外部系统根本调不进来
+
+两者都能在服务端跑代码，区别在**面向的调用方**。判据只有一条：
+**调用方在不在这个 Next.js 应用里？**
+
+| 场景 | 用什么 |
+|---|---|
+| 页面自己要展示的数据 | Server Component 里直接 `await` 取数 |
+| 表单提交、写操作（应用内部） | **Server Action**（`"use server"`，单独文件） |
+| 外部系统要调（移动端、第三方、webhook） | **Route Handler**（`app/api/**/route.ts`） |
+| 文件上传 / 下载、需要流式响应 | **Route Handler** |
+
+**Incorrect（应用内部的表单提交也开一个 API 路由）：**
+
+```ts
+// app/api/books/route.ts —— 只有自家页面会用，白写一层 URL 和 fetch
+export async function POST(req: NextRequest) {
+  const body = await req.json()
+  await createBook(body)
+  return NextResponse.json({ ok: true })
+}
+```
+
+**Correct（内部写操作走 Server Action，外部集成才开 `route.ts`）：**
+
+```ts
+// app/books/actions.ts
+'use server'
+
+export async function createBookAction(data: FormData) {
+  await createBook(parseBookData(data))
+  updateTag('book-list')
+}
+```
+
+**`route.ts` 的四条硬约束**（选了 Route Handler 就必须守）：
+
+- **`route.ts` 不能和 `page.tsx` 同目录** —— 同一路径段里 `GET` 会冲突；纯 API 放 `app/api/**`
+- **鉴权必须是 handler 的第一步**，在解析 body / query 之前 —— 否则未鉴权的调用可能已经产生副作用
+- **所有输入必须运行时校验**（见 `type-external-input-zod`），不能把 `searchParams.get(...)` 的结果直接用
+- **`params` 是 `Promise`**（Next 15+），必须 `await`（见 `data-request-apis-are-promises`）
+
+```ts
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const auth = await requireAuth(req)      // 1. 鉴权先做
+  const { id } = await params              // 2. 再取路径参数
+  const parsed = idSchema.safeParse(id)    // 3. 再校验
+  if (!parsed.success) return errorResponse(parsed.error)
+  const book = await getBook(parsed.data)  // 4. 业务逻辑委托给 service
+  return successResponse(book)
+}
+```
+
+鉴权与响应封装用**项目自己的工具层**（如 `requireAuth` / `successResponse`），
+不要在 handler 里各写各的 `NextResponse.json` —— 响应格式一旦不统一，
+前端就得为每个接口写一套解析。
+
+Reference: [Next.js: Route Handlers](https://nextjs.org/docs/app/api-reference/file-conventions/route)
+
 ---
 
 ## 5. 数据读取
@@ -1214,6 +1286,174 @@ export function AnalysisProgress({ bookId }: { bookId: string }) {
 
 Reference: [SWR: refreshInterval](https://swr.vercel.app/docs/options#refreshinterval)、
 [React: use](https://react.dev/reference/react/use)
+
+### 5.7 缓存按 Cache Components 写，不用旧的 unstable_cache
+
+**影响：HIGH** — 旧 API 写的缓存要么不生效，要么跟框架的失效机制对不上
+
+**动手前先看 `next.config.ts` 有没有 `cacheComponents: true`。**
+没有这个开关，`"use cache"` 是**无效**的（不报错，也不缓存）。
+新项目建议直接开：
+
+```ts
+// next.config.ts
+const nextConfig: NextConfig = {
+  cacheComponents: true,   // 启用 PPR + use cache（替代旧的 experimental.ppr）
+}
+```
+
+打开之后页面内容分三类，**先分类再写代码**：
+
+| 类型 | 写法 | 适用 |
+|---|---|---|
+| 静态 | 同步代码、静态导入 | 构建时就定下来的外壳 |
+| 缓存 | `"use cache"` + `cacheLife` + `cacheTag` | 异步数据，但不需要每次请求都取新的 |
+| 动态 | 放进 `<Suspense>` 边界 | 依赖 `cookies()` 等运行时值的部分 |
+
+**Incorrect（训练数据里最常见的旧写法）：**
+
+```ts
+import { unstable_cache } from 'next/cache'
+
+const getCachedBooks = unstable_cache(
+  async () => db.book.findMany(),
+  ['book-list'],
+  { tags: ['books'], revalidate: 3600 },
+)
+```
+
+**Correct（指令式，缓存键由框架自动生成）：**
+
+```ts
+import { cacheLife, cacheTag } from 'next/cache'
+
+async function getCachedBooks() {
+  'use cache'
+  cacheLife('hours')        // 约 1 小时 stale / 4 小时 revalidate
+  cacheTag('book-list')
+  return db.book.findMany()
+}
+```
+
+`cacheLife` 内置档位：`minutes` / `hours` / `days` / `weeks` / `max`（等同 `force-static`）；
+要精确控制就传对象 `{ stale, revalidate, expire }`。
+
+**旧 API 对照表**（迁移按这张表换）：
+
+| 旧 | 新 |
+|---|---|
+| `experimental.ppr` | `cacheComponents: true` |
+| `unstable_cache()` | `"use cache"` |
+| `export const dynamic = 'force-static'` | `"use cache"` + `cacheLife('max')` |
+| `export const revalidate = N` | `cacheLife({ revalidate: N })` |
+| `unstable_cache` 的 `options.tags` | `cacheTag()` |
+
+**限制**：`use cache` 需要 Node.js 运行时（**不支持 Edge**），也不支持 `output: 'export'`。
+`Math.random()` / `Date.now()` 这类非确定性值在 `use cache` 内**只执行一次**（构建时），
+别拿它生成「每次请求都不同」的内容。
+
+Reference: [Next.js: cacheComponents](https://nextjs.org/docs/app/api-reference/config/next-config-js/cacheComponents)
+
+### 5.8 use cache 内禁止读 cookies / headers / searchParams
+
+**影响：HIGH** — 在缓存函数里读运行时值会直接报错，不是「偶尔不生效」
+
+`cookies()` / `headers()` / `searchParams` 都是**请求级**的值，而 `use cache` 的结果是**跨请求共享**的 ——
+在缓存函数里读它们会直接报错。正确做法是把值**提到外层读**，再当参数传进去：
+可序列化的参数会自动成为缓存键的一部分，所以不同用户自然拿到各自的缓存。
+
+**Incorrect（在缓存函数内部读 cookies）：**
+
+```tsx
+async function CachedCard() {
+  'use cache'
+  const userId = (await cookies()).get('userId')?.value   // 报错
+  return <div>{await getProfile(userId)}</div>
+}
+```
+
+**Correct（外层读，当 props 传）：**
+
+```tsx
+async function CardWrapper() {
+  const userId = (await cookies()).get('userId')?.value
+  return <CachedCard userId={userId} />
+}
+
+async function CachedCard({ userId }: { userId?: string }) {
+  'use cache'
+  // userId 可序列化 → 自动进缓存键
+  const profile = await getProfile(userId)
+  return <div>{profile.name}</div>
+}
+```
+
+**例外**：实在没法重构时用 `"use cache: private"`，它允许读运行时 API，
+代价是**不进共享缓存层**（只有当前请求 / 用户能命中）—— 所以别拿它当默认选择。
+
+```ts
+async function getUserData() {
+  'use cache: private'
+  const session = (await cookies()).get('session')?.value   // 允许
+  return fetchUserData(session)
+}
+```
+
+**顺带一提**：`params` 也一样 —— 页面里 `await params` 之后把需要的值当 props 传给缓存组件，
+不要在缓存函数里再取一次。
+
+Reference: [Next.js: use cache directive](https://nextjs.org/docs/app/api-reference/directives/use-cache)
+
+### 5.9 写后要立刻看到用 updateTag，其余用 revalidateTag
+
+**影响：HIGH** — 选错标签函数，用户提交完看不到自己刚写的数据
+
+两个函数都按 `cacheTag` 打的标签失效，差别只在**时机**：
+
+| 函数 | 生效时机 | 用在哪 |
+|---|---|---|
+| `updateTag(tag)` | **当前请求内立刻**（后续读取已更新） | 表单提交后要马上显示新结果 |
+| `revalidateTag(tag)` | 后台重新验证，**下次请求**才看到 | 不要求立即一致，能接受短暂旧数据 |
+
+**Incorrect（提交后要立刻看到，却用了 `revalidateTag`）：**
+
+```ts
+'use server'
+
+export async function createBook(data: FormData) {
+  await db.book.create({ data: parseBookData(data) })
+  revalidateTag('book-list')   // 后台失效：用户这次提交后仍看到旧列表
+}
+```
+
+**Correct（写后即读，用 `updateTag`）：**
+
+```ts
+'use server'
+import { updateTag } from 'next/cache'
+
+export async function createBook(data: FormData) {
+  await db.book.create({ data: parseBookData(data) })
+  updateTag('book-list')       // 本次请求内立即生效
+}
+```
+
+**前提是标签颗粒度打对了。** 打得太粗（全站共用一个 `'data'`），
+任何一次写操作都会清掉整站缓存；打得太细（每次拼一个随机串），则永远命中不了。
+按**列表 / 详情**这一级打，粗一层 + 细一层：
+
+```ts
+async function getPersonas(bookId: string) {
+  'use cache'
+  cacheTag('personas', `personas-${bookId}`)
+  return db.persona.findMany({ where: { bookId } })
+}
+```
+
+**打标签的地方和失效的地方要能对上** —— 写 `cacheTag('personas')` 却去
+`revalidateTag('persona-list')`，是这类 bug 最常见的样子：不报错，只是永远不刷新。
+
+Reference: [Next.js: updateTag](https://nextjs.org/docs/app/api-reference/functions/updateTag)
 
 ---
 
@@ -2245,6 +2485,78 @@ function useBooks() { ... }
 
 Reference: [React: Reusing Logic with Custom Hooks（命名）](https://react.dev/learn/reusing-logic-with-custom-hooks)
 
+### 9.4 条件允许时用通行缩写，不自造缩写
+
+**影响：HIGH** — 名字短一截，读代码的人不用为它多停一次
+
+命名要**简短干练**：能砍掉的冗余修饰就砍掉。但「短」的边界不是字符数，
+而是**读者要不要停下来想一下**。
+
+| 判据 | 结论 |
+|---|---|
+| 通行缩写，读者不用想 | ✅ 用 —— `pwd`、`msg`、`btn`、`img`、`idx`、`len`、`cnt`、`cfg`、`env`、`src`、`tmp`、`max` / `min`、`w` / `h`、`prev` / `next` |
+| 自造缩写，读者得反推 | ❌ 不用 —— `usrMgrSt`、`psswrd`、`docLst`、`calcTotAmt` |
+| 去元音 / 随机省字母 | ❌ 一律不用 |
+
+> **判断口径：这个缩写能不能在官方文档或常见库里搜到？**
+> 搜得到（`pwd`、`img`、`idx`）就是通行缩写；搜不到就是自造缩写，别发明。
+
+**Incorrect（自造缩写，读者得猜）：**
+
+```ts
+const usrMgrSt = 'active'        // user manager status?
+const docLst = await getDocs()   // doc list? document last?
+const calcTotAmt = (items: Item[]) => items.reduce(...)
+const errMsgStr = error.message  // 后缀 Str 没带来任何信息
+```
+
+**Correct（通行缩写 + 去掉冗余修饰）：**
+
+```ts
+const pwdMinLen = 8              // pwd 是通行缩写，MinLen 也短
+const msg = error.message        // 不必写 errorMessageString
+const idx = items.findIndex(isDone)
+const btnRef = useRef<HTMLButtonElement>(null)
+
+// 上下文里已经有的词不要重复：函数名是 useBooks，变量就不必叫 bookList
+const { data, isLoading } = useBooks()
+```
+
+**两条硬边界：**
+
+1. **导出的名字不缩写。** 组件 props、导出的函数、跨模块共用的类型字段 ——
+   它们的读者在别的文件里，没有你这里的上下文。
+2. **同一个概念全项目只用一种写法。** `pwd` / `pass` / `password` 三种混用，
+   比统一写长的那一种还糟。
+
+**Incorrect（公开接口被缩写，调用方看不懂）：**
+
+```tsx
+interface BookCardProps {
+  imgW: number     // 调用方得猜：图片宽度？容器宽度？
+  pgNum: number
+}
+```
+
+**Correct（公开接口写全，内部实现才短）：**
+
+```tsx
+interface BookCardProps {
+  imageWidth: number
+  pageNumber: number
+}
+
+export function BookCard({ imageWidth, pageNumber }: BookCardProps) {
+  const minW = Math.min(imageWidth, 480)   // 内部临时变量，可以短
+  return <div style={{ minWidth: minW }}>{pageNumber}</div>
+}
+```
+
+**也别反过来**：短不是目标，**信息量**才是。`isLoading` 不要缩成 `ld`、
+`handleSubmit` 不要缩成 `hs` —— 那已经不是缩写，是密码了。
+
+Reference: [MDN: JavaScript code style guide（命名）](https://developer.mozilla.org/en-US/docs/MDN/Writing_guidelines/Writing_style_guide/Code_style_guide/JavaScript)
+
 ---
 
 ## 10. 逻辑抽离
@@ -2755,6 +3067,55 @@ Reference: [eslint-plugin-import-x](https://github.com/un-ts/eslint-plugin-impor
 
 ---
 
+## 14. 注释
+
+**影响：MEDIUM**
+
+注释写多了是噪声，写少了调用方只能去翻实现。这一节只划一条底线：
+
+### 14.1 注释只写给公开接口，且写约束不写复读
+
+**影响：MEDIUM** — 读代码的人不用翻实现就知道这个函数能怎么用、不能怎么用
+
+**只有导出的符号需要注释**：导出的函数、组件、hook、类型。
+它们的读者在别的文件里，看不到实现，只能靠注释判断能不能用、有什么坑。
+内部实现不强制 —— 代码自己说得清的，就别加。
+
+注释写**约束**（前置条件、副作用、为什么这么写），不写**复读**（把函数名翻译成中文）。
+
+**Incorrect（复读机注释一堆，该写的没写）：**
+
+```ts
+// 获取书籍列表
+export async function getBooks() { ... }
+
+// 设置加载状态
+const setIsLoading = (v: boolean) => setLoading(v)
+
+// 处理点击
+function onClick() { ... }
+```
+
+**Correct（导出的写约束，内部的删掉）：**
+
+```ts
+/**
+ * 读取当前用户的书籍列表。
+ * 未登录时返回空数组而不是抛错 —— 调用方不需要再判空。
+ * 已按 updatedAt 倒序，前端不要再排一次。
+ */
+export async function getBooks(): Promise<Book[]> { ... }
+
+const setIsLoading = (v: boolean) => setLoading(v)
+```
+
+**注释里不要写会过期的东西**：具体行号、接口返回的示例值、没有主语的「以后优化」。
+说不清就整句删掉，别留半句。
+
+Reference: [TypeScript: JSDoc Reference](https://www.typescriptlang.org/docs/handbook/jsdoc-supported-types.html)
+
+---
+
 ## References
 
 - https://nextjs.org/docs/app/building-your-application/routing
@@ -2773,3 +3134,9 @@ Reference: [eslint-plugin-import-x](https://github.com/un-ts/eslint-plugin-impor
 - https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Destructuring
 - https://zod.dev
 - https://www.typescriptlang.org/tsconfig#paths
+- https://nextjs.org/docs/app/api-reference/config/next-config-js/cacheComponents
+- https://nextjs.org/docs/app/api-reference/directives/use-cache
+- https://nextjs.org/docs/app/api-reference/functions/updateTag
+- https://nextjs.org/docs/app/api-reference/file-conventions/route
+- https://www.typescriptlang.org/docs/handbook/jsdoc-supported-types.html
+- https://developer.mozilla.org/en-US/docs/MDN/Writing_guidelines/Writing_style_guide/Code_style_guide/JavaScript

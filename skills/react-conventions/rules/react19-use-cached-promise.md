@@ -27,10 +27,11 @@ function StudentList() {
 const cache = new Map<string, Promise<Student[]>>()
 
 export function getStudentsPromise() {
-  if (!cache.has('all')) {
-    cache.set('all', getStudents())
-  }
-  return cache.get('all')!
+  const hit = cache.get('all')
+  if (hit) return hit          // 命中就复用，不用非空断言
+  const p = getStudents()
+  cache.set('all', p)
+  return p
 }
 
 export function invalidateStudents() {

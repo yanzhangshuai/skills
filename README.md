@@ -46,13 +46,15 @@ Claude Code 用 `~/.claude/skills/`，Cursor / Codex 项目级用 `.agents/skill
 
 | 技能 | 适用 | 覆盖 | 条数 |
 |---|---|---|---|
-| `nextjs-conventions` | Next.js App Router + React 19 + TS | RSC 边界、Next 15 异步 API、`use()` 读取与 SWR 轮询、路由级错误、目录与层间依赖、组件骨架、Zod 校验、状态语义、逻辑抽离、代码格式 | 45 |
-| `react-conventions` | React 19 + TS + Vite（无 Next.js） | 状态语义、异步动作、错误处理、目录与边界、命名、逻辑抽离、React 19 边界 | 22 |
+| `nextjs-conventions` | Next.js App Router + React 19 + TS | RSC 边界、Next 15 异步 API、`use()` 读取与 SWR 轮询、Cache Components 缓存、路由级错误、Server Action / Route Handler 分工、目录与层间依赖、组件骨架、Zod 校验、命名与缩写尺度、状态语义、逻辑抽离、代码格式、公开接口注释 | 51 |
+| `react-conventions` | React 19 + TS + Vite（无 Next.js） | 状态语义、异步动作、错误处理、目录与边界、命名与缩写尺度、逻辑抽离、React 19 边界、代码格式、公开接口注释 | 25 |
 | `nestjs-best-practices` | NestJS | 待写 | — |
 
-> **两份 React 技能的分工**：栈无关的规则（状态语义、异步动作、错误位置、命名、抽离门槛）
-> 两份措辞一致；栈相关的部分各写各的 —— Next.js 那份多出 RSC 边界、异步请求 API、
-> 路由级 `error.tsx`、`use()` 读取共 19 条，Vite 那份多出环境变量单一来源等。
+> **两份 React 技能的分工**（实测）：**共享 16 条**（状态语义、异步动作、错误位置、命名、
+> 导入分组、注释、抽离门槛），两份措辞一致；Next.js 那份另有 **35 条**专属（RSC 边界、
+> Next 15 异步请求 API、Cache Components 缓存、路由级 `error.tsx`、组件骨架、类型校验、
+> 样式与重渲染），Vite 那份另有 **9 条**专属（固定 `src/` 分层、组件按域分目录、
+> 禁止在组件里 `fetch`、环境变量单一来源等）。
 > **同一项目只装其中一份**，别两份都装。
 
 > **和 Vercel 的技能不冲突，应当叠加使用。**
@@ -77,9 +79,9 @@ standards/
     │   └── rules/
     │       ├── _sections.md   分节定义（顺序 / 影响等级 / 文件名前缀）
     │       ├── _template.md   单条规则的骨架
-    │       └── <prefix>-<slug>.md   45 条规则
+    │       └── <prefix>-<slug>.md   51 条规则
     ├── react-conventions/
-    │   └── ...            同上，23 条规则
+    │   └── ...            同上，25 条规则
     └── nestjs-best-practices/
         └── (待写)
 ```
@@ -125,12 +127,12 @@ standards/
 
 ## 当前状态
 
-**`react-conventions` 已成型**（23 条 / 8 分节），**尚未在真实生成任务里验证过**。
+**`react-conventions` 已成型**（25 条 / 9 分节），**尚未在真实生成任务里验证过**。
 `DECISIONS.md` 里有 16 条待拍板，其中 D9 / D12 / D14 已先行落进
 `naming-language` / `naming-interface-vs-type` / `layout-env-single-source` 三条规则 ——
 **这三条还没经你确认**。
 
-**`nextjs-conventions` 已成型**（45 条 / 13 分节）。
+**`nextjs-conventions` 已成型**（51 条 / 14 分节）。
 已做过一次**对照实验**（同一任务，带 skill vs 不带 skill 各跑一遍），
 暴露出并已修掉：Hook 文件名写反（camelCase → kebab-case，与两个真实项目对齐）、
 目录树缺 `lib/services/` 与 `server/actions/`、缺「轮询用 SWR」与「mounted 门控」两条规则。

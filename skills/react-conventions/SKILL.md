@@ -1,6 +1,6 @@
 ---
 name: react-conventions
-description: MUST be used when generating or reviewing React 19 + TypeScript + Vite project code. Covers 目录分层与边界、文件与标识符命名、异步状态语义（loading / pending）、异步动作统一外壳、错误就地显示、逻辑抽离时机、React 19 use() 的适用边界。Load for any .tsx / .ts work involving 新建页面、组件、hook、目录组织、状态命名、错误处理。Do NOT load for Next.js App Router projects — use the nextjs-conventions skill instead. Complements Vercel's react-best-practices (performance only) — this skill covers architecture and readability, with zero overlap.
+description: MUST be used when generating or reviewing React 19 + TypeScript + Vite project code. Covers 目录分层与边界、文件与标识符命名（含缩写尺度）、异步状态语义（loading / pending）、异步动作统一外壳、错误就地显示、逻辑抽离时机、公开接口注释、React 19 use() 的适用边界。Load for any .tsx / .ts work involving 新建页面、组件、hook、目录组织、状态命名、错误处理。Do NOT load for Next.js App Router projects — use the nextjs-conventions skill instead. Complements Vercel's react-best-practices (performance only) — this skill covers architecture and readability, with zero overlap.
 license: MIT
 metadata:
   author: yanzhangshuai
@@ -9,7 +9,7 @@ metadata:
 
 # React 项目约定
 
-React 19 + TypeScript + Vite 项目的**架构与可读性**规范。23 条规则，8 个分节，按影响等级排序。
+React 19 + TypeScript + Vite 项目的**架构与可读性**规范。25 条规则，9 个分节，按影响等级排序。
 
 > **和 Vercel 那份的分工**：`vercel-labs/agent-skills` 的 `react-best-practices` 管**性能**
 > （async 瀑布、bundle 体积、rerender、js 微优化），且强绑定 Next.js。
@@ -34,10 +34,11 @@ React 19 + TypeScript + Vite 项目的**架构与可读性**规范。23 条规�
 | 2 | 异步动作 | CRITICAL | `action-` | 3 |
 | 3 | 错误处理 | CRITICAL | `error-` | 3 |
 | 4 | 目录与边界 | HIGH | `layout-` | 6 |
-| 5 | 命名 | HIGH | `naming-` | 3 |
+| 5 | 命名 | HIGH | `naming-` | 4 |
 | 6 | 逻辑抽离 | MEDIUM | `extract-` | 3 |
 | 7 | React 19 边界 | MEDIUM | `react19-` | 2 |
 | 8 | 代码格式 | MEDIUM | `format-` | 1 |
+| 9 | 注释 | MEDIUM | `comment-` | 1 |
 
 ## Quick Reference
 
@@ -72,6 +73,7 @@ React 19 + TypeScript + Vite 项目的**架构与可读性**规范。23 条规�
 - `naming-file-case` — 组件文件 PascalCase，其他文件 kebab-case
 - `naming-language` — 标识符用英文，注释与文档用中文
 - `naming-interface-vs-type` — 对象形状用 `interface`，联合与工具类型用 `type`
+- `naming-brevity` — 条件允许时用通行缩写（`pwd`、`minW`），不自造缩写；导出的名字不缩写
 
 ### 6. 逻辑抽离（MEDIUM）
 
@@ -87,6 +89,10 @@ React 19 + TypeScript + Vite 项目的**架构与可读性**规范。23 条规�
 ### 8. 代码格式（MEDIUM）
 
 - `format-import-order` — 导入分三组（外部 → `@/` → 相对），组内按字母序；类型导入标 `type`
+
+### 9. 注释（MEDIUM）
+
+- `comment-public-api` — 只有导出的符号必须有注释，且写约束不写复读；内部实现不强制
 
 ## 工作流
 
@@ -108,8 +114,10 @@ React 19 + TypeScript + Vite 项目的**架构与可读性**规范。23 条规�
 - [ ] 错误显示在触发点附近，`ApiError` 的 message 被展示
 - [ ] 组件 / 页面里没有直接 `fetch`
 - [ ] 文件名大小写符合约定，两处别名配置一致
+- [ ] 命名没有自造缩写；导出的 props / 函数名没有被缩写
 - [ ] 没有用 `use()` 替代动作 hook
 - [ ] 导入分了三组、组内按字母序，类型导入标了 `type`
+- [ ] 导出的函数 / 组件 / hook / 类型都有注释，写的是约束不是复读
 
 ## How to Use
 

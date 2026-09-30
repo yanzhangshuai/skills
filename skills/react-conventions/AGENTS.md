@@ -3,7 +3,7 @@
 > ⚠️ 本文件由 `tools/build-agents.mjs` 从 `rules/` 自动生成 —— **不要手改**。
 > 改 `rules/<file>.md` 之后重新生成：`node tools/build-agents.mjs`
 
-React 19 + TypeScript + Vite 项目的架构与可读性规范，面向 AI agent。含 23 条规则、8 个分节，按影响等级从 critical（状态语义、异步动作、错误处理）到 incremental（逻辑抽离、React 19 边界、代码格式）排序。每条规则给出反例与正例对照。内容来自 TodoSystem.WebClient 的真实沉淀，不是通用最佳实践的复述。与 Vercel 的 react-best-practices 互补：那份管性能，这份管结构与可读性，零重叠。
+React 19 + TypeScript + Vite 项目的架构与可读性规范，面向 AI agent。含 25 条规则、9 个分节，按影响等级从 critical（状态语义、异步动作、错误处理）到 incremental（逻辑抽离、React 19 边界、代码格式、注释）排序。每条规则给出反例与正例对照。内容来自 TodoSystem.WebClient 的真实沉淀，不是通用最佳实践的复述。与 Vercel 的 react-best-practices 互补：那份管性能，这份管结构与可读性，零重叠。
 
 ## 目录
 
@@ -33,6 +33,7 @@ React 19 + TypeScript + Vite 项目的架构与可读性规范，面向 AI agent
    - 5.1 组件 PascalCase，其他 kebab-case
    - 5.2 标识符英文，注释与文档中文
    - 5.3 对象形状用 interface，联合与工具类型用 type
+   - 5.4 条件允许时用通行缩写，不自造缩写
 
 6. **逻辑抽离**（MEDIUM）
    - 6.1 什么时候把逻辑抽到 hooks/
@@ -45,6 +46,9 @@ React 19 + TypeScript + Vite 项目的架构与可读性规范，面向 AI agent
 
 8. **代码格式**（MEDIUM）
    - 8.1 导入分三组，组内按字母序
+
+9. **注释**（MEDIUM）
+   - 9.1 注释只写给公开接口，且写约束不写复读
 
 ---
 
@@ -853,6 +857,78 @@ interface Teacher extends Student {
 
 Reference: [TypeScript: Object Types](https://www.typescriptlang.org/docs/handbook/2/objects.html)
 
+### 5.4 条件允许时用通行缩写，不自造缩写
+
+**影响：HIGH** — 名字短一截，读代码的人不用为它多停一次
+
+命名要**简短干练**：能砍掉的冗余修饰就砍掉。但「短」的边界不是字符数，
+而是**读者要不要停下来想一下**。
+
+| 判据 | 结论 |
+|---|---|
+| 通行缩写，读者不用想 | ✅ 用 —— `pwd`、`msg`、`btn`、`img`、`idx`、`len`、`cnt`、`cfg`、`env`、`src`、`tmp`、`max` / `min`、`w` / `h`、`prev` / `next` |
+| 自造缩写，读者得反推 | ❌ 不用 —— `usrMgrSt`、`psswrd`、`docLst`、`calcTotAmt` |
+| 去元音 / 随机省字母 | ❌ 一律不用 |
+
+> **判断口径：这个缩写能不能在官方文档或常见库里搜到？**
+> 搜得到（`pwd`、`img`、`idx`）就是通行缩写；搜不到就是自造缩写，别发明。
+
+**Incorrect（自造缩写，读者得猜）：**
+
+```ts
+const usrMgrSt = 'active'        // user manager status?
+const docLst = await getDocs()   // doc list? document last?
+const calcTotAmt = (items: Item[]) => items.reduce(...)
+const errMsgStr = error.message  // 后缀 Str 没带来任何信息
+```
+
+**Correct（通行缩写 + 去掉冗余修饰）：**
+
+```ts
+const pwdMinLen = 8              // pwd 是通行缩写，MinLen 也短
+const msg = error.message        // 不必写 errorMessageString
+const idx = items.findIndex(isDone)
+const btnRef = useRef<HTMLButtonElement>(null)
+
+// 上下文里已经有的词不要重复：函数名是 useBooks，变量就不必叫 bookList
+const { data, isLoading } = useBooks()
+```
+
+**两条硬边界：**
+
+1. **导出的名字不缩写。** 组件 props、导出的函数、跨模块共用的类型字段 ——
+   它们的读者在别的文件里，没有你这里的上下文。
+2. **同一个概念全项目只用一种写法。** `pwd` / `pass` / `password` 三种混用，
+   比统一写长的那一种还糟。
+
+**Incorrect（公开接口被缩写，调用方看不懂）：**
+
+```tsx
+interface BookCardProps {
+  imgW: number     // 调用方得猜：图片宽度？容器宽度？
+  pgNum: number
+}
+```
+
+**Correct（公开接口写全，内部实现才短）：**
+
+```tsx
+interface BookCardProps {
+  imageWidth: number
+  pageNumber: number
+}
+
+export function BookCard({ imageWidth, pageNumber }: BookCardProps) {
+  const minW = Math.min(imageWidth, 480)   // 内部临时变量，可以短
+  return <div style={{ minWidth: minW }}>{pageNumber}</div>
+}
+```
+
+**也别反过来**：短不是目标，**信息量**才是。`isLoading` 不要缩成 `ld`、
+`handleSubmit` 不要缩成 `hs` —— 那已经不是缩写，是密码了。
+
+Reference: [MDN: JavaScript code style guide（命名）](https://developer.mozilla.org/en-US/docs/MDN/Writing_guidelines/Writing_style_guide/Code_style_guide/JavaScript)
+
 ---
 
 ## 6. 逻辑抽离
@@ -1093,10 +1169,11 @@ function StudentList() {
 const cache = new Map<string, Promise<Student[]>>()
 
 export function getStudentsPromise() {
-  if (!cache.has('all')) {
-    cache.set('all', getStudents())
-  }
-  return cache.get('all')!
+  const hit = cache.get('all')
+  if (hit) return hit          // 命中就复用，不用非空断言
+  const p = getStudents()
+  cache.set('all', p)
+  return p
 }
 
 export function invalidateStudents() {
@@ -1181,6 +1258,55 @@ Reference: [TypeScript: type-only imports](https://www.typescriptlang.org/docs/h
 
 ---
 
+## 9. 注释
+
+**影响：MEDIUM**
+
+注释写多了是噪声，写少了调用方只能去翻实现。这一节只划一条底线：
+
+### 9.1 注释只写给公开接口，且写约束不写复读
+
+**影响：MEDIUM** — 读代码的人不用翻实现就知道这个函数能怎么用、不能怎么用
+
+**只有导出的符号需要注释**：导出的函数、组件、hook、类型。
+它们的读者在别的文件里，看不到实现，只能靠注释判断能不能用、有什么坑。
+内部实现不强制 —— 代码自己说得清的，就别加。
+
+注释写**约束**（前置条件、副作用、为什么这么写），不写**复读**（把函数名翻译成中文）。
+
+**Incorrect（复读机注释一堆，该写的没写）：**
+
+```ts
+// 获取书籍列表
+export async function getBooks() { ... }
+
+// 设置加载状态
+const setIsLoading = (v: boolean) => setLoading(v)
+
+// 处理点击
+function onClick() { ... }
+```
+
+**Correct（导出的写约束，内部的删掉）：**
+
+```ts
+/**
+ * 读取当前用户的书籍列表。
+ * 未登录时返回空数组而不是抛错 —— 调用方不需要再判空。
+ * 已按 updatedAt 倒序，前端不要再排一次。
+ */
+export async function getBooks(): Promise<Book[]> { ... }
+
+const setIsLoading = (v: boolean) => setLoading(v)
+```
+
+**注释里不要写会过期的东西**：具体行号、接口返回的示例值、没有主语的「以后优化」。
+说不清就整句删掉，别留半句。
+
+Reference: [TypeScript: JSDoc Reference](https://www.typescriptlang.org/docs/handbook/jsdoc-supported-types.html)
+
+---
+
 ## References
 
 - https://react.dev/reference/react/use
@@ -1190,3 +1316,5 @@ Reference: [TypeScript: type-only imports](https://www.typescriptlang.org/docs/h
 - https://react.dev/learn/you-might-not-need-an-effect
 - https://vite.dev/config/shared-options.html#resolve-alias
 - https://www.typescriptlang.org/tsconfig#paths
+- https://www.typescriptlang.org/docs/handbook/jsdoc-supported-types.html
+- https://developer.mozilla.org/en-US/docs/MDN/Writing_guidelines/Writing_style_guide/Code_style_guide/JavaScript

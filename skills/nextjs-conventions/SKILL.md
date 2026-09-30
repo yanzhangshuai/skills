@@ -1,6 +1,6 @@
 ---
 name: nextjs-conventions
-description: MUST be used when generating or reviewing Next.js App Router + React 19 + TypeScript project code. Covers RSC 边界与 "use client" 传染、Next 15 异步 API（params / searchParams / cookies / headers）、渲染期读取用 use()、路由级 error.tsx 与 unstable_rethrow、目录与层间依赖、组件骨架（Props interface / 语义化 className / 可访问性）、外部输入 Zod 校验、异步状态语义（loading / pending）、异步动作统一外壳、逻辑抽离。Load for any .tsx / .ts work under src/app、新建页面或路由、Server / Client Component 划分、数据读取、表单与错误处理。Do NOT load for plain React 19 + Vite projects without Next.js — use the react-conventions skill instead. Complements Vercel's vercel-react-best-practices (performance) and vercel-next-best-practices (file conventions) — this skill covers project structure, naming, state semantics, error placement and component skeleton.
+description: MUST be used when generating or reviewing Next.js App Router + React 19 + TypeScript project code. Covers RSC 边界与 "use client" 传染、Next 15 异步 API（params / searchParams / cookies / headers）、渲染期读取用 use()、Cache Components 缓存（use cache / cacheLife / cacheTag / updateTag）、路由级 error.tsx 与 unstable_rethrow、Server Action 与 Route Handler 的分工、目录与层间依赖、组件骨架（Props interface / 语义化 className / 可访问性）、外部输入 Zod 校验、命名与缩写尺度、异步状态语义（loading / pending）、异步动作统一外壳、逻辑抽离、公开接口注释。Load for any .tsx / .ts work under src/app、新建页面或路由、Server / Client Component 划分、数据读取与缓存、表单与错误处理。Do NOT load for plain React 19 + Vite projects without Next.js — use the react-conventions skill instead. Complements Vercel's vercel-react-best-practices (performance) and vercel-next-best-practices (file conventions) — this skill covers project structure, naming, state semantics, error placement and component skeleton.
 license: MIT
 metadata:
   author: yanzhangshuai
@@ -10,7 +10,7 @@ metadata:
 # Next.js 项目约定
 
 Next.js App Router + React 19 + TypeScript 项目的**架构与可读性**规范。
-45 条规则，13 个分节，按影响等级排序。
+51 条规则，14 个分节，按影响等级排序。
 
 > **和 Vercel 那两份的分工**（三份**零重叠**，应叠加使用）：
 >
@@ -42,16 +42,17 @@ Next.js App Router + React 19 + TypeScript 项目的**架构与可读性**规范
 | 1 | 状态语义 | CRITICAL | `state-` | 2 |
 | 2 | 异步动作 | CRITICAL | `action-` | 3 |
 | 3 | 错误处理 | CRITICAL | `error-` | 4 |
-| 4 | RSC 边界 | CRITICAL | `rsc-` | 5 |
-| 5 | 数据读取 | CRITICAL | `data-` | 6 |
+| 4 | RSC 边界 | CRITICAL | `rsc-` | 6 |
+| 5 | 数据读取 | CRITICAL | `data-` | 9 |
 | 6 | 目录与边界 | HIGH | `layout-` | 4 |
 | 7 | 组件 | HIGH | `component-` | 6 |
 | 8 | 类型与校验 | HIGH | `type-` | 3 |
-| 9 | 命名 | HIGH | `naming-` | 3 |
+| 9 | 命名 | HIGH | `naming-` | 4 |
 | 10 | 逻辑抽离 | MEDIUM | `extract-` | 3 |
 | 11 | 样式与布局 | MEDIUM | `style-` | 2 |
 | 12 | 重渲染 | MEDIUM | `render-` | 2 |
 | 13 | 代码格式 | MEDIUM | `format-` | 2 |
+| 14 | 注释 | MEDIUM | `comment-` | 1 |
 
 ## Quick Reference
 
@@ -80,6 +81,7 @@ Next.js App Router + React 19 + TypeScript 项目的**架构与可读性**规范
 - `rsc-client-not-async` — Client Component 不能声明为 `async function`
 - `rsc-server-action-separate-file` — Server Action 必须单独文件 + `"use server"`
 - `rsc-mounted-gate` — 浏览器本地状态影响渲染时必须 `mounted` 门控，否则水合不一致
+- `rsc-action-vs-route-handler` — 调用方在应用内用 Server Action，在外部（移动端 / webhook）才开 `route.ts`
 
 ### 5. 数据读取（CRITICAL）
 
@@ -89,6 +91,9 @@ Next.js App Router + React 19 + TypeScript 项目的**架构与可读性**规范
 - `data-preload` — 能提前触发的取数先 `preload`
 - `data-suspense-boundary` — 用 `useSearchParams` / `usePathname` 的 Client 组件必须被 `Suspense` 包裹
 - `data-polling-with-swr` — 轮询用 SWR `refreshInterval`，不用 `use()`；不引入 TanStack Query
+- `data-cache-components` — 先看 `cacheComponents` 开没开；用 `"use cache"` 不用 `unstable_cache`
+- `data-use-cache-runtime-api` — `use cache` 内不能读 `cookies()` / `headers()` / `searchParams`，提到外层当 props 传
+- `data-cache-invalidation` — 写后要立刻看到用 `updateTag`，能接受下次请求生效才用 `revalidateTag`
 
 ### 6. 目录与边界（HIGH）
 
@@ -117,6 +122,7 @@ Next.js App Router + React 19 + TypeScript 项目的**架构与可读性**规范
 - `naming-file-case` — 组件文件 PascalCase，其他文件 kebab-case
 - `naming-language` — 标识符用英文，注释与文档用中文
 - `naming-identifier-conventions` — 布尔 `is/has/should/can` 前缀，常量 SCREAMING_SNAKE，hook 以 `use` 开头且体现领域
+- `naming-brevity` — 条件允许时用通行缩写（`pwd`、`minW`），不自造缩写；导出的名字不缩写
 
 ### 10. 逻辑抽离（MEDIUM）
 
@@ -139,6 +145,10 @@ Next.js App Router + React 19 + TypeScript 项目的**架构与可读性**规范
 - `format-defer-to-tooling` — 引号 / 分号 / 尾逗号交给 ESLint，别手写；示例的标点不要照抄
 - `format-import-order` — 导入分四组（Node → 外部 → `@/` → 相对），组间空行；类型导入标 `type`
 
+### 14. 注释（MEDIUM）
+
+- `comment-public-api` — 只有导出的符号必须有注释，且写约束不写复读；内部实现不强制
+
 ## 工作流
 
 生成新项目时按这个顺序走：
@@ -146,7 +156,8 @@ Next.js App Router + React 19 + TypeScript 项目的**架构与可读性**规范
 1. **先定路由树与目录** —— 按 `layout-app-tree` 建 `src/app` + `components/{ui,layout,system}` + `providers` + `types`；按 `layout-alias-sync` 一次配好两处别名。
 2. **再划 RSC 边界** —— 按 `rsc-*`：默认服务端，只有交互叶子加 `"use client"`，边界尽量往下推。
 3. **然后定组件骨架** —— 按 `component-*`：每个组件先写 `interface <ComponentName>Props`，再写实现；根 DOM 给语义化 className。
-4. **数据读取走 use()** —— 按 `data-*`：渲染期读取 `use()` + Suspense，`params` 等一律 `await`，独立取数并行。
+4. **数据读取走 use()** —— 按 `data-*`：渲染期读取 `use()` + Suspense，`params` 等一律 `await`，独立取数并行；
+   要缓存先确认 `next.config.ts` 有 `cacheComponents: true`，再写 `"use cache"`。
 5. **写状态** —— 按 `state-*` 命名，读 `loading`、动作 `pending`。
 6. **异步一律走外壳** —— 按 `action-*` 建 `useAsyncAction`，不要每个动作手写一遍。
 7. **外部输入一律校验** —— 按 `type-*`，Zod 收窄，禁止裸 `as`。
@@ -174,7 +185,13 @@ Next.js App Router + React 19 + TypeScript 项目的**架构与可读性**规范
 - [ ] effect 依赖数组长度与顺序恒定，派生数组都过了 `useMemo`
 - [ ] 高频交互里没有 no-op 状态写入（语义未变就返回 `prev`）
 - [ ] 文件名大小写符合约定，两处别名配置一致
+- [ ] 命名没有自造缩写；导出的 props / 函数名没有被缩写
 - [ ] 导入分了四组、组间有空行，类型导入标了 `type`
+- [ ] 缓存用 `"use cache"`（确认 `cacheComponents` 已开），没有 `unstable_cache`；
+      `use cache` 函数里没读 `cookies()` / `headers()` / `searchParams`
+- [ ] 写后要立刻反映的操作用了 `updateTag`；`cacheTag` 与失效时用的标签对得上
+- [ ] 没有为自家页面开无谓的 `route.ts`；有 `route.ts` 的话鉴权是第一步、输入过了校验
+- [ ] 导出的函数 / 组件 / hook / 类型都有注释，写的是约束不是复读
 - [ ] 提交前跑过 `pnpm lint:fix`（别手工调引号 / 分号 / 尾逗号）
 
 ## How to Use
