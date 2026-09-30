@@ -10,7 +10,7 @@ metadata:
 # Next.js 项目约定
 
 Next.js App Router + React 19 + TypeScript 项目的**架构与可读性**规范。
-41 条规则，12 个分节，按影响等级排序。
+43 条规则，12 个分节，按影响等级排序。
 
 > **和 Vercel 那两份的分工**（三份**零重叠**，应叠加使用）：
 >
@@ -42,8 +42,8 @@ Next.js App Router + React 19 + TypeScript 项目的**架构与可读性**规范
 | 1 | 状态语义 | CRITICAL | `state-` | 2 |
 | 2 | 异步动作 | CRITICAL | `action-` | 3 |
 | 3 | 错误处理 | CRITICAL | `error-` | 4 |
-| 4 | RSC 边界 | CRITICAL | `rsc-` | 4 |
-| 5 | 数据读取 | CRITICAL | `data-` | 5 |
+| 4 | RSC 边界 | CRITICAL | `rsc-` | 5 |
+| 5 | 数据读取 | CRITICAL | `data-` | 6 |
 | 6 | 目录与边界 | HIGH | `layout-` | 4 |
 | 7 | 组件 | HIGH | `component-` | 6 |
 | 8 | 类型与校验 | HIGH | `type-` | 3 |
@@ -78,6 +78,7 @@ Next.js App Router + React 19 + TypeScript 项目的**架构与可读性**规范
 - `rsc-keep-client-boundary-small` — `"use client"` 向下传染，边界要往下推
 - `rsc-client-not-async` — Client Component 不能声明为 `async function`
 - `rsc-server-action-separate-file` — Server Action 必须单独文件 + `"use server"`
+- `rsc-mounted-gate` — 浏览器本地状态影响渲染时必须 `mounted` 门控，否则水合不一致
 
 ### 5. 数据读取（CRITICAL）
 
@@ -86,6 +87,7 @@ Next.js App Router + React 19 + TypeScript 项目的**架构与可读性**规范
 - `data-parallel-fetch` — 相互独立的取数用 `Promise.all`，避免瀑布
 - `data-preload` — 能提前触发的取数先 `preload`
 - `data-suspense-boundary` — 用 `useSearchParams` / `usePathname` 的 Client 组件必须被 `Suspense` 包裹
+- `data-polling-with-swr` — 轮询用 SWR `refreshInterval`，不用 `use()`；不引入 TanStack Query
 
 ### 6. 目录与边界（HIGH）
 
@@ -149,7 +151,10 @@ Next.js App Router + React 19 + TypeScript 项目的**架构与可读性**规范
 - [ ] 每个 `"use client"` 都有真实的交互需求，且加在了最小的那个组件上
 - [ ] `params` / `searchParams` / `cookies()` / `headers()` 全部 `await` 了
 - [ ] 渲染期异步读取用 `use()`，没有 `useEffect + setState` 首屏拉数
+- [ ] 轮询走 SWR `refreshInterval`，没有拿 `use()` 或手写 `setInterval` 当轮询
 - [ ] 用 `useSearchParams` / `usePathname` 的 Client 组件都被 `Suspense` 包裹
+- [ ] 主题 / localStorage 这类浏览器本地状态影响渲染的地方都有 `mounted` 门控
+- [ ] `lib/services/` 里不碰数据库，`server/**` 里不碰 React
 - [ ] 每个返回 JSX 的组件都有 `interface <ComponentName>Props`
 - [ ] 根 DOM 有语义化 className，没有 `wrapper` / `container`
 - [ ] 图标控件有 `aria-label`，`button` 有显式 `type`

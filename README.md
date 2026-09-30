@@ -46,7 +46,7 @@ Claude Code 用 `~/.claude/skills/`，Cursor / Codex 项目级用 `.agents/skill
 
 | 技能 | 适用 | 覆盖 | 条数 |
 |---|---|---|---|
-| `nextjs-conventions` | Next.js App Router + React 19 + TS | RSC 边界、Next 15 异步 API、`use()` 读取、路由级错误、目录与层间依赖、组件骨架、Zod 校验、状态语义、逻辑抽离 | 41 |
+| `nextjs-conventions` | Next.js App Router + React 19 + TS | RSC 边界、Next 15 异步 API、`use()` 读取与 SWR 轮询、路由级错误、目录与层间依赖、组件骨架、Zod 校验、状态语义、逻辑抽离 | 43 |
 | `react-conventions` | React 19 + TS + Vite（无 Next.js） | 状态语义、异步动作、错误处理、目录与边界、命名、逻辑抽离、React 19 边界 | 22 |
 | `nestjs-best-practices` | NestJS | 待写 | — |
 
@@ -77,7 +77,7 @@ standards/
     │   └── rules/
     │       ├── _sections.md   分节定义（顺序 / 影响等级 / 文件名前缀）
     │       ├── _template.md   单条规则的骨架
-    │       └── <prefix>-<slug>.md   41 条规则
+    │       └── <prefix>-<slug>.md   43 条规则
     ├── react-conventions/
     │   └── ...            同上，22 条规则
     └── nestjs-best-practices/
@@ -124,7 +124,11 @@ standards/
 `naming-language` / `naming-interface-vs-type` / `layout-env-single-source` 三条规则 ——
 **这三条还没经你确认**。
 
-**`nextjs-conventions` 已成型**（41 条 / 12 分节），同样**尚未验证**。
+**`nextjs-conventions` 已成型**（43 条 / 12 分节）。
+已做过一次**对照实验**（同一任务，带 skill vs 不带 skill 各跑一遍），
+暴露出并已修掉：Hook 文件名写反（camelCase → kebab-case，与两个真实项目对齐）、
+目录树缺 `lib/services/` 与 `server/actions/`、缺「轮询用 SWR」与「mounted 门控」两条规则。
+**但还没有按 Vercel 的方法论做过多轮验证。**
 两处立场冲突已按你的裁决落地：渲染期读取用 `use()`（跟 wen-yuan），
 页面级编排 hook 与通用共享 hook 的门槛分开写（`extract-page-hook` / `extract-shared-hook-threshold`）。
 

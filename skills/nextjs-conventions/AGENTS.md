@@ -3,7 +3,7 @@
 > ⚠️ 本文件由 `tools/build-agents.mjs` 从 `rules/` 自动生成 —— **不要手改**。
 > 改 `rules/<file>.md` 之后重新生成：`node tools/build-agents.mjs`
 
-Next.js App Router + React 19 + TypeScript 项目的架构与可读性规范，面向 AI agent。含 41 条规则、12 个分节，按影响等级从 critical（状态语义、异步动作、错误处理、RSC 边界、数据读取）到 incremental（逻辑抽离、样式与布局、重渲染）排序。每条规则给出反例与正例对照。内容来自 wen-yuan 项目的真实沉淀（.trellis/spec）与 TodoSystem 的踩坑记录，不是通用最佳实践的复述。与 Vercel 的 vercel-react-best-practices（性能）和 vercel-next-best-practices（文件约定）互补：那两份管性能与 API 用法，这份管项目结构、命名、状态语义、错误位置与组件骨架。
+Next.js App Router + React 19 + TypeScript 项目的架构与可读性规范，面向 AI agent。含 43 条规则、12 个分节，按影响等级从 critical（状态语义、异步动作、错误处理、RSC 边界、数据读取）到 incremental（逻辑抽离、样式与布局、重渲染）排序。每条规则给出反例与正例对照。内容来自 wen-yuan 项目的真实沉淀（.trellis/spec）与 TodoSystem 的踩坑记录，不是通用最佳实践的复述。与 Vercel 的 vercel-react-best-practices（性能）和 vercel-next-best-practices（文件约定）互补：那两份管性能与 API 用法，这份管项目结构、命名、状态语义、错误位置与组件骨架。
 
 ## 目录
 
@@ -27,6 +27,7 @@ Next.js App Router + React 19 + TypeScript 项目的架构与可读性规范，�
    - 4.2 use client 向下传染，边界要往下推
    - 4.3 Client Component 不能是 async
    - 4.4 Server Action 必须单独文件 + use server
+   - 4.5 浏览器本地状态影响 UI 时必须 mounted 门控
 
 5. **数据读取**（CRITICAL）
    - 5.1 渲染期异步读取统一用 use()
@@ -34,6 +35,7 @@ Next.js App Router + React 19 + TypeScript 项目的架构与可读性规范，�
    - 5.3 独立取数用 Promise.all 并行
    - 5.4 能提前触发的取数先 preload
    - 5.5 useSearchParams 的组件必须被 Suspense 包裹
+   - 5.6 客户端轮询用 SWR，不用 use()
 
 6. **目录与边界**（HIGH）
    - 6.1 App Router 的固定目录树
@@ -721,10 +723,85 @@ export function DeleteButton({ id }: { id: string }) {
 }
 ```
 
+**放哪**：只有该路由段会用的 action，就近放 `app/<段>/actions.ts`；
+被多个路由段复用的，放 `server/actions/<域>.ts`。
+**判据是复用范围，不是文件类型** —— 不要为了「统一」把所有 action 都挪进 `server/actions/`，
+那样反而丢掉了就近可读性。
+
 **别忘了鉴权** —— Server Action 是公开的 HTTP 端点，
 不校验身份就等于把写接口裸奔出去。
 
 Reference: [Next.js: Server Actions and Mutations](https://nextjs.org/docs/app/building-your-application/data-fetching/server-actions-and-mutations)
+
+### 4.5 浏览器本地状态影响 UI 时必须 mounted 门控
+
+**影响：HIGH** — 消除 SSR/CSR 首帧不一致导致的水合警告与视觉跳变
+
+服务端**拿不到** `localStorage` / `window.matchMedia`。
+如果首帧渲染就依赖它们（主题、语言偏好、是否登录过），
+服务端输出和客户端首帧必然不一致 → React 报 Hydration 警告，
+用户还会看到一次颜色/文案跳变。
+
+**门控规则**：这类值在挂载完成前**不参与渲染**。
+
+**Incorrect（`useTheme` 直接用于 `className` / `aria-pressed`）：**
+
+```tsx
+'use client'
+import { useTheme } from 'next-themes'
+
+export function ThemeToggle() {
+  const { theme } = useTheme()
+  return (
+    <button aria-pressed={theme === 'dark'}>   // ❌ SSR 首帧 theme 是 undefined
+      {theme === 'dark' ? '深色' : '浅色'}
+    </button>
+  )
+}
+```
+
+**Correct（`mounted` 之后才暴露真实值）：**
+
+```tsx
+'use client'
+import { useEffect, useState } from 'react'
+import { useTheme } from 'next-themes'
+
+export function useHydratedTheme() {
+  const { theme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => setMounted(true), [])
+
+  // 挂载前返回一个服务端/客户端都一样的确定值
+  return { theme: mounted ? theme : undefined, setTheme, mounted }
+}
+```
+
+```tsx
+export function ThemeToggle() {
+  const { theme, setTheme, mounted } = useHydratedTheme()
+  return (
+    <button
+      type="button"
+      aria-pressed={mounted ? theme === 'dark' : undefined}
+      onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+    >
+      切换主题
+    </button>
+  )
+}
+```
+
+**只有「影响渲染结果」的本地状态才需要门控。**
+存在 `useRef` 里、只在事件回调里读的值不需要 —— 门控本身是一次额外渲染，别滥用。
+
+**另一条路**：给服务端提供同样的快照（例如把主题写进 cookie，
+在 `layout.tsx` 里 `await cookies()` 读出来注入），
+这样服务端就能渲染出正确首帧，连门控都省了。**需要 SEO/无闪烁要求时优先走这条。**
+
+Reference: [React: Hydration Mismatch](https://react.dev/link/hydration-mismatch)、
+[Next.js: cookies()](https://nextjs.org/docs/app/api-reference/functions/cookies)
 
 ---
 
@@ -1072,6 +1149,68 @@ export default async function BooksPage({
 
 Reference: [Next.js: useSearchParams](https://nextjs.org/docs/app/api-reference/functions/use-search-params)
 
+### 5.6 客户端轮询用 SWR，不用 use()
+
+**影响：HIGH** — 轮询是事件驱动的持续读取，用 use() 会挂死或无限重取
+
+**轮询不属于渲染期数据读取。** 它由状态变化驱动（解析进度、任务状态），
+属于客户端事件，用 SWR 的 `refreshInterval`；首屏读取仍然用 `use()`。
+
+`use()` 读的是**一个 promise**，promise 只 resolve 一次。
+拿它做轮询，要么一直停在第一份数据上，要么每次 render 新建 promise 直接挂死。
+
+**Incorrect（用 use() 做轮询 / 在 effect 里手写 setInterval）：**
+
+```tsx
+'use client'
+
+export function AnalysisProgress({ bookId }: { bookId: string }) {
+  const [status, setStatus] = useState('PROCESSING')
+
+  useEffect(() => {
+    const timer = setInterval(async () => {
+      const res = await fetch(`/api/books/${bookId}/status`)
+      setStatus((await res.json()).data.status)
+    }, 2000)
+    return () => clearInterval(timer)
+  }, [bookId])          // 拿不到「该停了」，也管不住并发请求
+
+  return <span>{status}</span>
+}
+```
+
+**Correct（SWR `refreshInterval`，回调返回 `0` 即停止）：**
+
+```tsx
+'use client'
+import useSWR from 'swr'
+
+const fetcher = (url: string) =>
+  fetch(url).then((r) => r.json()).then((r) => r.data)
+
+export function AnalysisProgress({ bookId }: { bookId: string }) {
+  const { data } = useSWR(`/api/books/${bookId}/status`, fetcher, {
+    refreshInterval: (data) =>
+      data?.status === 'COMPLETED' || data?.status === 'ERROR' ? 0 : 2000,
+  })
+  return <span>{data?.status ?? 'PROCESSING'}</span>
+}
+```
+
+**SWR 的使用范围要严格限定：**
+
+| 场景 | 用什么 |
+|---|---|
+| 首屏数据加载 | `use()` + Suspense |
+| 条件轮询（可停止） | SWR `refreshInterval` |
+| 表单提交 / 写操作 | Server Action 或 `action-single-wrapper` |
+
+**不要引入 TanStack Query** —— 首屏已被 `use()` 覆盖，轮询 SWR 足够，
+再加一层查询库只会让「数据从哪来」多一种答案。
+
+Reference: [SWR: refreshInterval](https://swr.vercel.app/docs/options#refreshinterval)、
+[React: use](https://react.dev/reference/react/use)
+
 ---
 
 ## 6. 目录与边界
@@ -1098,10 +1237,17 @@ src/
 │   ├── layout/             布局层公共模块（Navbar 等）
 │   ├── system/             系统级封装 / re-export
 │   └── <域>/               业务组件按域分
+├── features/<feature>/     功能域内部：该域专用的组件与 hook 就近放
+│   └── hooks/              功能域 hook（use-xxx.ts）
 ├── providers/              全局 React providers
-├── hooks/                  跨组件复用的 hook
+├── hooks/                  跨功能域复用的 hook
+├── lib/
+│   └── services/           客户端服务封装（包 Route Handler 的 fetch + 校验）
 ├── types/                  跨层共享契约类型
 └── server/                 仅服务端使用，客户端组件禁止直接导入
+    ├── actions/            Server Actions
+    ├── modules/<域>/services/   服务端数据访问
+    └── db/                 数据源
 ```
 
 **Incorrect（按「新建一个功能就加一个顶层目录」演化）：**
@@ -1122,9 +1268,20 @@ src/
 ├── app/admin/books/page.tsx
 ├── components/book/BookTable.tsx
 ├── components/ui/Button.tsx
-├── server/services/book-service.ts
+├── lib/services/books.ts                          ← 客户端调用入口
+├── server/modules/book/services/book-service.ts   ← 服务端数据访问
 └── types/book.ts
 ```
+
+**两处「服务」不要混：**
+
+| 位置 | 跑在哪 | 干什么 |
+|---|---|---|
+| `lib/services/<域>.ts` | 浏览器 | 封装对自家 `app/api/**` 的 `fetch`、解析响应、Zod 校验 |
+| `server/modules/<域>/services/` | 服务端 | 直接读数据库 / 外部 API，供 Server Component 与 Server Action 调用 |
+
+`lib/services/` 里**不碰数据库**，`server/**` 里**不碰 React**。这条边界破了，
+就会出现「客户端组件 import 了 server/db」这种既漏数据又炸构建的写法。
 
 **路由组 `(folder)` 不出现在 URL 中**，只用于共享 layout 或区分权限层级 ——
 `app/(viewer)/` 和 `app/admin/` 是两个一级壳层。
@@ -1917,10 +2074,14 @@ Reference: [TypeScript: unknown vs any](https://www.typescriptlang.org/docs/hand
 |---|---|---|
 | React 组件 | PascalCase | `BookCard.tsx`、`ThemeToggle.tsx` |
 | Next.js 路由文件 | **框架约定名** | `page.tsx`、`layout.tsx`、`route.ts`、`error.tsx` |
-| Hook | camelCase + `use` 前缀 | `useBooks.ts`、`useGraphData.ts` |
+| Hook 文件 | kebab-case，`use-` 前缀 | `use-books.ts`、`use-async-action.ts` |
 | 工具函数 | kebab-case | `date-utils.ts`、`book-service.ts` |
 | 类型模块 | kebab-case | `analysis-types.ts`、`api.ts` |
 | 目录 | kebab-case | `book-dashboard/` |
+
+> ⚠️ **文件名和标识符是两回事。** 文件叫 `use-books.ts`，里面导出的函数叫 `useBooks` ——
+> 文件一律 kebab-case，只有**函数名 / 变量名**才用 camelCase。
+> 这条容易反着记，所以单列一行。
 
 **Incorrect（同一个目录里三种风格并存）：**
 
@@ -1930,9 +2091,7 @@ components/book/
 ├── bookTable.tsx        ← 组件用了 camelCase
 ├── Book_Panel.tsx       ← 组件用了 snake_case
 hooks/
-└── useBooks.ts          ✓
-hooks/
-└── use_graph.ts         ← hook 用了 snake_case
+└── useBooks.ts          ← hook 文件用了 camelCase（函数名才该是 useBooks）
 ```
 
 **Correct（一条线划清）：**
@@ -1940,11 +2099,10 @@ hooks/
 ```
 components/book/
 ├── BookCard.tsx
-├── BookTable.tsx
-└── book-filter.tsx      ← 组件必须 PascalCase
+└── BookTable.tsx
 hooks/
-├── useBooks.ts
-└── useGraphData.ts
+├── use-books.ts         ← 文件 kebab-case
+└── use-graph-data.ts    ← 导出的是 useGraphData()
 lib/
 ├── date-utils.ts
 └── book-service.ts
@@ -2482,6 +2640,8 @@ Reference: [React: useState 的函数式更新](https://react.dev/reference/reac
 - https://react.dev/learn/reusing-logic-with-custom-hooks
 - https://react.dev/reference/react/useMemo
 - https://react.dev/learn/state-as-a-snapshot
+- https://react.dev/link/hydration-mismatch
+- https://swr.vercel.app/docs/options#refreshinterval
 - https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Destructuring
 - https://zod.dev
 - https://www.typescriptlang.org/tsconfig#paths

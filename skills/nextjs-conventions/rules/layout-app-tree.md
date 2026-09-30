@@ -22,10 +22,17 @@ src/
 │   ├── layout/             布局层公共模块（Navbar 等）
 │   ├── system/             系统级封装 / re-export
 │   └── <域>/               业务组件按域分
+├── features/<feature>/     功能域内部：该域专用的组件与 hook 就近放
+│   └── hooks/              功能域 hook（use-xxx.ts）
 ├── providers/              全局 React providers
-├── hooks/                  跨组件复用的 hook
+├── hooks/                  跨功能域复用的 hook
+├── lib/
+│   └── services/           客户端服务封装（包 Route Handler 的 fetch + 校验）
 ├── types/                  跨层共享契约类型
 └── server/                 仅服务端使用，客户端组件禁止直接导入
+    ├── actions/            Server Actions
+    ├── modules/<域>/services/   服务端数据访问
+    └── db/                 数据源
 ```
 
 **Incorrect（按「新建一个功能就加一个顶层目录」演化）：**
@@ -46,9 +53,20 @@ src/
 ├── app/admin/books/page.tsx
 ├── components/book/BookTable.tsx
 ├── components/ui/Button.tsx
-├── server/services/book-service.ts
+├── lib/services/books.ts                          ← 客户端调用入口
+├── server/modules/book/services/book-service.ts   ← 服务端数据访问
 └── types/book.ts
 ```
+
+**两处「服务」不要混：**
+
+| 位置 | 跑在哪 | 干什么 |
+|---|---|---|
+| `lib/services/<域>.ts` | 浏览器 | 封装对自家 `app/api/**` 的 `fetch`、解析响应、Zod 校验 |
+| `server/modules/<域>/services/` | 服务端 | 直接读数据库 / 外部 API，供 Server Component 与 Server Action 调用 |
+
+`lib/services/` 里**不碰数据库**，`server/**` 里**不碰 React**。这条边界破了，
+就会出现「客户端组件 import 了 server/db」这种既漏数据又炸构建的写法。
 
 **路由组 `(folder)` 不出现在 URL 中**，只用于共享 layout 或区分权限层级 ——
 `app/(viewer)/` 和 `app/admin/` 是两个一级壳层。

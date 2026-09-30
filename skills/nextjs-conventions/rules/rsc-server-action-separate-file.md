@@ -53,6 +53,11 @@ export function DeleteButton({ id }: { id: string }) {
 }
 ```
 
+**放哪**：只有该路由段会用的 action，就近放 `app/<段>/actions.ts`；
+被多个路由段复用的，放 `server/actions/<域>.ts`。
+**判据是复用范围，不是文件类型** —— 不要为了「统一」把所有 action 都挪进 `server/actions/`，
+那样反而丢掉了就近可读性。
+
 **别忘了鉴权** —— Server Action 是公开的 HTTP 端点，
 不校验身份就等于把写接口裸奔出去。
 
